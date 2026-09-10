@@ -1,0 +1,207 @@
+@import '@lark-apaas/client-toolkit/lib/index.css';
+@import 'tw-animate-css';
+@import './tailwind-theme.css';
+@import './typography.css';
+
+@source "../../node_modules/streamdown/dist/*.js";
+@config "../../tailwind.config.ts";
+
+html {
+  background: var(--app-bg, #eef2f7);
+}
+
+body {
+  margin: 0;
+  color: var(--foreground, #1c2733);
+  text-rendering: optimizeLegibility;
+}
+
+::selection {
+  background: var(--primary-soft);
+  color: var(--foreground);
+}
+
+/* ---------------------------------- */
+/* 设计 tokens：克制型玻璃拟态工作台 */
+/* 圆角体系：小控件 8px / Input·Button 10px */
+/*             普通卡片 12px / 大容器 16px / Drawer 20px */
+/* ---------------------------------- */
+
+:root {
+  --glass-bg: var(--surface-glass);
+  --glass-bg-strong: var(--surface-glass-strong);
+  --glass-border: var(--border);
+  --glass-hairline: var(--border);
+  --glass-shadow: var(--shadow);
+  --glass-shadow-lift: var(--shadow-lift);
+  --glass-highlight: linear-gradient(to bottom, var(--glass-highlight-color), transparent);
+  --focus-ring: 0 0 0 2px var(--ring);
+}
+
+/* 全局表单控件：40px 高、10px 圆角、统一 focus ring */
+.form-input {
+  width: 100%;
+  min-height: 40px;
+  border: 1px solid var(--border-strong);
+  border-radius: 10px;
+  padding: 8px 12px;
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--foreground);
+  background: var(--input);
+  outline: none;
+  cursor: pointer;
+  transition:
+    border-color 0.15s,
+    box-shadow 0.15s,
+    background-color 0.15s;
+}
+
+.form-input:hover {
+  border-color: var(--ring);
+  background: var(--input-hover);
+}
+
+.form-input:focus {
+  border-color: var(--primary);
+  box-shadow: var(--focus-ring);
+  background: var(--surface-elevated);
+}
+
+.form-input::placeholder {
+  color: var(--foreground-muted);
+}
+
+textarea.form-input {
+  cursor: text;
+}
+
+/* 大容器玻璃面：页面 Header、主工作区、Drawer 内容 */
+.glass-panel {
+  position: relative;
+  border: 1px solid var(--glass-hairline);
+  border-radius: 16px;
+  background: var(--glass-bg-strong);
+  box-shadow: var(--glass-shadow);
+  backdrop-filter: blur(14px) saturate(150%);
+}
+
+/* 细高光线，绝不遮挡交互 */
+.glass-sheen {
+  pointer-events: none;
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: var(--glass-highlight);
+  opacity: 0.35;
+  -webkit-mask:
+    linear-gradient(#fff 0 0) content-box,
+    linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  padding: 1px;
+}
+
+/* 普通卡片：12px 圆角、半透明白、细描边、轻阴影 */
+.glass-card {
+  position: relative;
+  border: 1px solid var(--glass-hairline);
+  border-radius: 12px;
+  background: var(--surface-card);
+  box-shadow: var(--shadow);
+}
+
+.glass-card-interactive {
+  transition:
+    transform 0.16s ease,
+    border-color 0.16s ease,
+    box-shadow 0.16s ease;
+}
+
+.glass-card-interactive:hover {
+  transform: translateY(-1px);
+  border-color: var(--border-strong);
+  box-shadow: var(--shadow);
+}
+
+/* 玻璃工具栏 */
+.glass-toolbar {
+  border: 1px solid var(--glass-hairline);
+  border-radius: 12px;
+  background: var(--surface-toolbar);
+  box-shadow: var(--glass-shadow);
+  backdrop-filter: blur(16px) saturate(160%);
+}
+
+/* 兼容旧类名：历史页面统一收敛到新视觉 */
+.ui-page-header {
+  border: 1px solid var(--glass-hairline);
+  border-radius: 16px;
+  background: var(--glass-bg-strong);
+  box-shadow: var(--glass-shadow);
+  backdrop-filter: blur(14px) saturate(150%);
+}
+
+.ui-surface {
+  border: 1px solid var(--glass-hairline);
+  border-radius: 12px;
+  background: var(--surface-card);
+  box-shadow: var(--shadow);
+}
+
+.ui-surface.form-section { background: var(--surface-section); }
+
+.application-filter-bar {
+  background: var(--surface-toolbar);
+  backdrop-filter: blur(16px) saturate(160%);
+}
+
+@media (prefers-reduced-transparency: reduce) {
+  .glass-panel,
+  .glass-toolbar,
+  .ui-page-header,
+  .application-filter-bar {
+    background: var(--surface-elevated);
+    backdrop-filter: none;
+  }
+}
+
+@media (prefers-contrast: more) {
+  .glass-panel,
+  .glass-card,
+  .glass-toolbar,
+  .ui-page-header,
+  .application-filter-bar {
+    border-color: var(--border-strong);
+    background: var(--surface-elevated);
+  }
+}
+
+/* Theme coverage shared by native controls and portals. No color inversion. */
+body { background: var(--background); }
+* { scrollbar-color: var(--scrollbar) transparent; scrollbar-width: thin; }
+:where(button, a, input, textarea, select, [tabindex]):focus-visible:not([class*='ring-']):not(.form-input) {
+  outline: 2px solid var(--ring);
+  outline-offset: 2px;
+}
+:where(input, textarea, select) { color-scheme: inherit; }
+:where(input, textarea)::placeholder { color: var(--foreground-muted); opacity: 1; }
+.form-input:disabled {
+  color: var(--foreground-muted);
+  background: var(--surface-muted);
+  cursor: not-allowed;
+}
+.form-input[aria-invalid='true'] { border-color: var(--destructive); }
+:where([data-slot='dialog-content'], [data-slot='sheet-content'], [data-slot='drawer-content'],
+[data-slot='popover-content'], [data-slot='select-content'], [data-slot='dropdown-menu-content']) {
+  background: var(--surface-floating);
+  color: var(--foreground);
+  border-color: var(--border);
+  box-shadow: var(--shadow);
+}
+:where([data-slot='input'], [data-slot='textarea'], [data-slot='select-trigger']) {
+  color: var(--foreground);
+}
+@media (prefers-reduced-motion: reduce) {
+  .form-input { transition: none; }
+}
