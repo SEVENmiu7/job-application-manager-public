@@ -10,6 +10,8 @@ import type {
   InterviewReviewListResponse,
   InterviewReviewMutationResponse,
   InterviewReviewSavePayload,
+  DeleteMyDataResponse,
+  UserDataExport,
 } from '@shared/api.interface';
 
 type BackendRequestConfig = Omit<AxiosRequestConfig, 'url'>;
@@ -100,6 +102,11 @@ export const api = {
     }).then((result: InterviewReviewMutationResponse) => result.review),
   deleteInterviewReview: (reviewId: string) =>
     request<boolean>(`/interview-reviews/${reviewId}`, {
+      method: 'DELETE',
+    }),
+  exportMyData: () => request<UserDataExport>('/data-privacy/export'),
+  deleteMyData: () =>
+    request<DeleteMyDataResponse>('/data-privacy/all', {
       method: 'DELETE',
     }),
   getPlatforms: async (): Promise<Platform[]> => {

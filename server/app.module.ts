@@ -7,6 +7,7 @@ import { ViewModule } from './modules/view/view.module';
 import { ApplicationModule } from './modules/application/application.module';
 import { InterviewReviewModule } from './modules/interview-review/interview-review.module';
 import { ScrapingModule } from './modules/scraping/scraping.module';
+import { DataPrivacyModule } from './modules/data-privacy/data-privacy.module';
 import { DebugController } from './modules/debug/debug.controller';
 
 @Module({
@@ -17,6 +18,7 @@ import { DebugController } from './modules/debug/debug.controller';
     ApplicationModule,
     InterviewReviewModule,
     ScrapingModule,
+    DataPrivacyModule,
     // ====== @route-section: business-modules END ======
 
     // ⚠️ @route-order: last
