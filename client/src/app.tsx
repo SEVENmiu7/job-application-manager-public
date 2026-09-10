@@ -2,6 +2,7 @@ import React, { lazy, Suspense } from 'react';
 import { Route, Routes } from 'react-router-dom';
 import Layout from './components/Layout';
 import Dashboard from './pages/Dashboard/Dashboard';
+import PrivacySettings from './pages/PrivacySettings/PrivacySettings';
 
 const NotFound = lazy(() => import('./pages/NotFound/NotFound'));
 const ApplicationList = lazy(
@@ -37,6 +38,7 @@ const RoutesComponent = () => {
             path="scraping"
             element={<LazyPage component={<Scraping />} />}
           />
+          <Route path="privacy" element={<PrivacySettings />} />
         </Route>
         <Route path="*" element={<LazyPage component={<NotFound />} />} />
       </Routes>

@@ -1,5 +1,7 @@
 /* 前后端共享的类型写在这里 */
 
+import type { ApplicationProcessTimes } from './types';
+
 /** 复盘中的一条问题记录 */
 export interface InterviewReviewQuestion {
   /** 面试问题 */
@@ -73,4 +75,42 @@ export interface InterviewReviewListResponse {
 
 export interface InterviewReviewMutationResponse {
   review: InterviewReview;
+}
+
+/** 导出文件中的投递记录，不包含用户 ID 和平台审计字段。 */
+export interface UserApplicationExport {
+  id: string;
+  company: string;
+  position: string;
+  locations: string[];
+  industry?: string;
+  functionDirections: string[];
+  channel?: string;
+  favoriteTime?: string;
+  applyTime?: string;
+  processTimes: ApplicationProcessTimes;
+  status: string;
+  nextStep?: string;
+  notes?: string;
+  resumeTag?: string;
+  jobResponsibilities?: string;
+  jobRequirements?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+/** 导出文件中的面试复盘，不包含用户 ID。 */
+export type UserInterviewReviewExport = Omit<InterviewReview, 'userId'>;
+
+/** 当前登录用户的完整数据备份。 */
+export interface UserDataExport {
+  version: 1;
+  exportedAt: string;
+  applications: UserApplicationExport[];
+  interviewReviews: UserInterviewReviewExport[];
+}
+
+export interface DeleteMyDataResponse {
+  deletedApplications: number;
+  deletedInterviewReviews: number;
 }
