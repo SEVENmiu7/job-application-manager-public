@@ -176,9 +176,9 @@ export const applications = pgTable("applications", {
   boardOrder: integer("board_order"),
   jobResponsibilities: text("job_responsibilities"),
   jobRequirements: text("job_requirements"),
+  processTimes: text("process_times"),
   createdAt: timestamp("created_at", { mode: 'string' }).notNull().default(sql`CURRENT_TIMESTAMP`),
   updatedAt: timestamp("updated_at", { mode: 'string' }).notNull().default(sql`CURRENT_TIMESTAMP`),
-  processTimes: text("process_times"),
   // System field: Creator (auto-filled, do not modify)
   createdBy: userProfile("_created_by").default(sql`CASE
     WHEN (current_setting('app.user_id'::text, true) = ''::text) THEN NULL`),
@@ -188,6 +188,7 @@ export const applications = pgTable("applications", {
 }, (table) => [
   index("idx_applications_user_id").on(table.userId),
   index("idx_applications_user_created_at").on(table.userId, table.createdAt),
+  index("idx_applications_user_updated_at").on(table.userId, table.updatedAt),
 ]);
 
 // table aliases
