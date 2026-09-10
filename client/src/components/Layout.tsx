@@ -150,8 +150,8 @@ export default function Layout() {
             <Target />
           </span>
           <div>
-            <div className="sidebar-title">求职投递</div>
-            <div className="sidebar-subtitle">公开多人版</div>
+            <div className="sidebar-title">求职投递管理器</div>
+            <div className="sidebar-subtitle">个人工作台</div>
           </div>
         </div>
         <button
@@ -186,8 +186,8 @@ export default function Layout() {
             <Target />
           </div>
           <div className="sidebar-brand-text">
-            <div className="sidebar-title">求职投递</div>
-            <div className="sidebar-subtitle">公开多人版</div>
+            <div className="sidebar-title">求职投递管理器</div>
+            <div className="sidebar-subtitle">个人工作台</div>
           </div>
           <button
             type="button"
@@ -209,21 +209,10 @@ export default function Layout() {
           <div className="sidebar-appearance">
             <AppearanceMenu />
           </div>
-          <div className="demo-sidebar-note">
-            <Target aria-hidden="true" />
-            <div>
-              <strong>账号数据隔离</strong>
-              <span>仅你自己可见和管理</span>
-            </div>
-          </div>
         </div>
       </aside>
 
       <main className="layout-main">
-        <div className="demo-banner" role="status">
-          <strong>公开多人版</strong>
-          <span>你的投递记录仅对当前登录账号可见。</span>
-        </div>
         <Outlet />
       </main>
     </div>
