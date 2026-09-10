@@ -8,6 +8,7 @@ import {
   PanelLeftClose,
   PanelLeftOpen,
   PlusCircle,
+  ShieldCheck,
   Target,
   X,
 } from 'lucide-react';
@@ -209,6 +210,12 @@ export default function Layout() {
           <div className="sidebar-appearance">
             <AppearanceMenu />
           </div>
+          {renderNavItem({
+            path: '/privacy',
+            label: '数据与隐私',
+            icon: ShieldCheck,
+            exact: true,
+          })}
         </div>
       </aside>
 
