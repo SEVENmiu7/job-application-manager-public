@@ -5,8 +5,20 @@ import {
   MapPin,
   RotateCcw,
   Save,
+  ShieldCheck,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '@/components/ui/alert-dialog';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import {
@@ -21,6 +33,7 @@ interface ScrapingResultProps {
   onUpdate: (key: keyof JobDraft, value: string) => void;
   onReset: () => void;
   onSave: () => void;
+  savedAt: number | null;
 }
 
 export default function ScrapingResult({
@@ -29,7 +42,15 @@ export default function ScrapingResult({
   onUpdate,
   onReset,
   onSave,
+  savedAt,
 }: ScrapingResultProps) {
+  const savedTime: string = savedAt
+    ? new Intl.DateTimeFormat('zh-CN', {
+        hour: '2-digit',
+        minute: '2-digit',
+      }).format(savedAt)
+    : '';
+
   return (
     <section className="ui-surface space-y-5 p-4 sm:p-5">
       <div className="flex flex-wrap items-start justify-between gap-3 border-b border-border pb-4">
@@ -39,10 +60,31 @@ export default function ScrapingResult({
             可直接修改。公司名称和岗位名称为必填项。
           </p>
         </div>
-        <Button type="button" variant="outline" size="sm" onClick={onReset}>
-          <RotateCcw />
-          重新采集
-        </Button>
+        <AlertDialog>
+          <AlertDialogTrigger asChild>
+            <Button type="button" variant="outline" size="sm">
+              <RotateCcw />
+              放弃并重新采集
+            </Button>
+          </AlertDialogTrigger>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>放弃这份岗位草稿？</AlertDialogTitle>
+              <AlertDialogDescription>
+                当前识别结果和手动修改的内容都会被清除，此操作无法撤销。
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>继续编辑</AlertDialogCancel>
+              <AlertDialogAction
+                onClick={onReset}
+                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              >
+                放弃草稿
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </div>
 
       <div className="grid gap-4 md:grid-cols-2">
@@ -135,7 +177,14 @@ export default function ScrapingResult({
         </div>
       </div>
 
-      <div className="flex flex-wrap items-center gap-3 border-t border-border pt-4">
+      <div className="flex flex-wrap items-center justify-between gap-3 border-t border-border pt-4">
+        <div className="flex items-center gap-2 text-xs text-foreground-muted">
+          <ShieldCheck className="size-4 text-primary" />
+          <span>
+            {savedTime ? `已于 ${savedTime} 自动保存到本机` : '正在保存草稿'}
+            <span className="hidden sm:inline">，7 天内返回可继续编辑</span>
+          </span>
+        </div>
         <Button
           type="button"
           size="lg"
@@ -149,9 +198,6 @@ export default function ScrapingResult({
           )}
           保存到投递列表
         </Button>
-        <span className="text-xs text-foreground-muted">
-          默认进度为“收藏”，保存后可在列表中继续编辑。
-        </span>
       </div>
     </section>
   );

@@ -27,6 +27,7 @@ import {
 import { Progress } from '@/components/ui/progress';
 import { Textarea } from '@/components/ui/textarea';
 import { useSessionState } from '@/hooks/useSessionState';
+import { usePersistentState } from '@/hooks/usePersistentState';
 import type { Platform } from '@shared/types';
 import ScrapingResult from './ScrapingResult';
 import {
@@ -55,8 +56,38 @@ function classifyScrapingError(
   return 'plugin_error';
 }
 
+interface ScrapingProgress {
+  draft: JobDraft;
+  sourceMode: SourceMode;
+  sourceValue: string;
+}
+
+const DRAFT_RETENTION_MS: number = 7 * 24 * 60 * 60 * 1000;
+
+function readLegacyProgress(): ScrapingProgress | null {
+  try {
+    const rawDraft: string | null =
+      window.sessionStorage.getItem('scraping:draft');
+    if (!rawDraft) return null;
+    const draft: JobDraft = normalizeDraft(JSON.parse(rawDraft));
+    const storedMode: string | null =
+      window.sessionStorage.getItem('scraping:mode');
+    const sourceMode: SourceMode = storedMode === '"text"' ? 'text' : 'url';
+    const sourceKey: string =
+      sourceMode === 'url' ? 'scraping:url' : 'scraping:job-text';
+    const rawSource: string | null = window.sessionStorage.getItem(sourceKey);
+    const sourceValue: string = rawSource ? JSON.parse(rawSource) : '';
+    return { draft, sourceMode, sourceValue };
+  } catch {
+    return null;
+  }
+}
+
 export default function Scraping() {
   const navigate = useNavigate();
+  const [legacyProgress] = useState<ScrapingProgress | null>(
+    readLegacyProgress,
+  );
   const [platforms, setPlatforms] = useState<Platform[]>([]);
   const [platformsLoading, setPlatformsLoading] = useState<boolean>(true);
   const [platformsError, setPlatformsError] = useState<string>('');
@@ -73,13 +104,26 @@ export default function Scraping() {
     '',
   );
   const {
-    value: draft,
-    setValue: setDraft,
-    clearValue: clearDraft,
-  } = useSessionState<JobDraft | null>('scraping:draft', null);
+    value: savedProgress,
+    setValue: setSavedProgress,
+    clearValue: clearSavedProgress,
+    savedAt,
+  } = usePersistentState<ScrapingProgress | null>(
+    'scraping:progress:v2',
+    legacyProgress,
+    DRAFT_RETENTION_MS,
+  );
+  const draft: JobDraft | null = savedProgress?.draft ?? null;
+  const [wasDraftRestored] = useState<boolean>(() => Boolean(draft));
   const [stage, setStage] = useState<ProcessingStage>(draft ? 'ready' : 'idle');
   const [progress, setProgress] = useState<number>(draft ? 100 : 0);
   const [error, setError] = useState<string>('');
+
+  useEffect(() => {
+    if (legacyProgress) {
+      window.sessionStorage.removeItem('scraping:draft');
+    }
+  }, [legacyProgress]);
 
   const clearSource = (source: SourceMode): void => {
     if (source === 'url') setUrl('');
@@ -98,12 +142,18 @@ export default function Scraping() {
   }, []);
 
   const updateDraft = (key: keyof JobDraft, value: string): void => {
-    setDraft((current: JobDraft | null) =>
-      current ? { ...current, [key]: value } : current,
+    setSavedProgress((current: ScrapingProgress | null) =>
+      current
+        ? { ...current, draft: { ...current.draft, [key]: value } }
+        : current,
     );
   };
 
-  const extractJobInfo = async (sourceText: string): Promise<void> => {
+  const extractJobInfo = async (
+    sourceText: string,
+    sourceMode: SourceMode,
+    sourceValue: string,
+  ): Promise<void> => {
     setStage('extracting');
     setProgress(72);
     try {
@@ -114,7 +164,7 @@ export default function Scraping() {
       if (!nextDraft.companyName && !nextDraft.jobTitle) {
         throw new Error('未识别到公司或岗位名称，请粘贴更完整的招聘信息');
       }
-      setDraft(nextDraft);
+      setSavedProgress({ draft: nextDraft, sourceMode, sourceValue });
       setProgress(100);
       setStage('ready');
     } catch (extractError: unknown) {
@@ -144,7 +194,6 @@ export default function Scraping() {
     }
 
     setError('');
-    setDraft(null);
     setStage('reading');
     setProgress(18);
 
@@ -180,7 +229,7 @@ export default function Scraping() {
       }
       failedStage = 'extracting';
       extractStartedAt = performance.now();
-      await extractJobInfo(pageContent);
+      await extractJobInfo(pageContent, 'url', normalizedUrl);
       extractMs = roundDuration(extractStartedAt);
       logScrapingPerformance({
         mode: 'url',
@@ -222,8 +271,8 @@ export default function Scraping() {
       setError(
         `${getErrorMessage(processingError)}。如果该页面需要登录，请切换到“粘贴岗位文本”。`,
       );
-      setStage('idle');
-      setProgress(0);
+      setStage(draft ? 'ready' : 'idle');
+      setProgress(draft ? 100 : 0);
     }
   };
 
@@ -234,10 +283,9 @@ export default function Scraping() {
       return;
     }
     setError('');
-    setDraft(null);
     const extractStartedAt: number = performance.now();
     try {
-      await extractJobInfo(normalizedText);
+      await extractJobInfo(normalizedText, 'text', normalizedText);
       const extractMs: number = roundDuration(extractStartedAt);
       logScrapingPerformance({
         mode: 'text',
@@ -258,8 +306,8 @@ export default function Scraping() {
         errorType: classifyScrapingError(extractError),
       });
       setError(getErrorMessage(extractError));
-      setStage('idle');
-      setProgress(0);
+      setStage(draft ? 'ready' : 'idle');
+      setProgress(draft ? 100 : 0);
     }
   };
 
@@ -277,9 +325,13 @@ export default function Scraping() {
       岗位名称: draft.jobTitle.trim(),
       当前进度: '收藏',
       收藏时间: new Date().toISOString(),
-      招聘渠道: mode === 'url' ? detectChannel(url) : '其他',
+      招聘渠道:
+        savedProgress?.sourceMode === 'url'
+          ? detectChannel(savedProgress.sourceValue)
+          : '其他',
       岗位职责: draft.responsibilities.trim(),
       任职要求: draft.requirements.trim(),
+      薪资: (draft.salary || '').trim(),
       个人备注: (draft.personalNote || '').trim(),
       下一步安排: (draft.nextStep || '').trim(),
     };
@@ -296,7 +348,7 @@ export default function Scraping() {
 
     try {
       await api.createApplication(fields);
-      clearDraft();
+      clearSavedProgress();
       navigate('/applications');
     } catch (saveError: unknown) {
       setError(getErrorMessage(saveError));
@@ -305,8 +357,8 @@ export default function Scraping() {
   };
 
   const handleReset = (): void => {
-    setDraft(null);
-    clearDraft();
+    setSavedProgress(null);
+    clearSavedProgress();
     setError('');
     setStage('idle');
     setProgress(0);
@@ -323,6 +375,18 @@ export default function Scraping() {
         title="岗位采集"
         description="读取公开招聘页面，或粘贴岗位文本。识别结果由你确认后再保存。"
       />
+
+      {wasDraftRestored && draft && (
+        <Alert className="border-primary/25 bg-primary-soft">
+          <CheckCircle2 className="text-primary" />
+          <AlertTitle>已恢复上次未保存的岗位</AlertTitle>
+          <AlertDescription>
+            {draft.companyName || '未填写公司'} ·{' '}
+            {draft.jobTitle || '未填写岗位'}
+            。你可以继续校对，离开页面后草稿仍会保留。
+          </AlertDescription>
+        </Alert>
+      )}
 
       <section className="glass-panel px-4 py-3" aria-label="岗位采集流程">
         <CompactStepper
@@ -560,6 +624,7 @@ export default function Scraping() {
           onUpdate={updateDraft}
           onReset={handleReset}
           onSave={handleSave}
+          savedAt={savedAt}
         />
       )}
     </div>

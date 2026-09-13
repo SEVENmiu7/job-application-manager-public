@@ -1,15 +1,17 @@
 import { useDeferredValue, useEffect, useMemo, useRef, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import {
   BookOpenText,
   ArrowUpDown,
   Check,
   ChevronLeft,
+  ChevronDown,
   ChevronRight,
   Edit2,
   FileText,
   Filter,
   FolderOpen,
+  GitCompareArrows,
   LayoutGrid,
   MapPin,
   NotebookPen,
@@ -42,6 +44,7 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import { Button } from '@/components/ui/button';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
 import {
   Select,
@@ -69,6 +72,11 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { Textarea } from '@/components/ui/textarea';
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from '@/components/ui/collapsible';
 import { useApplications, useStats } from '@/hooks/useApplications';
 import { useSessionState } from '@/hooks/useSessionState';
 import {
@@ -90,6 +98,7 @@ import {
   type ApplicationListSortDirection,
   type ApplicationListSortOption,
 } from './ApplicationListSort';
+import { toggleCompareId } from '../ApplicationCompare/comparison-selection';
 import type {
   ApplicationRecord,
   ApplicationProcessTimes,
@@ -104,6 +113,8 @@ import {
   INDUSTRY_OPTIONS,
   LOCATION_OPTIONS,
   STATUS_ORDER,
+  DECISION_LEVEL_OPTIONS,
+  type DecisionLevel,
 } from '../../../../shared/types';
 
 interface FilterSelectProps {
@@ -142,6 +153,8 @@ interface ReviewDialogState {
 }
 
 export default function ApplicationList() {
+  const navigate = useNavigate();
+  const location = useLocation();
   const { value: filters, setValue: setFilters } = useSessionState<
     Record<string, string>
   >('application-list:filters', {});
@@ -167,12 +180,18 @@ export default function ApplicationList() {
     null,
   );
   const [savingQuickEdit, setSavingQuickEdit] = useState<string | null>(null);
-  const [page, setPage] = useState<number>(1);
+  const { value: page, setValue: setPage } = useSessionState<number>(
+    'application-list:page',
+    1,
+  );
+  const [compareMode, setCompareMode] = useState(false);
+  const [compareIds, setCompareIds] = useState<string[]>([]);
   const [reviewDialog, setReviewDialog] = useState<ReviewDialogState | null>(
     null,
   );
   const [reviewRefreshKey, setReviewRefreshKey] = useState<number>(0);
   const initializedFavoriteSort = useRef<boolean>(false);
+  const initializedPageReset = useRef<boolean>(false);
   const deferredKeyword: string = useDeferredValue(filters.keyword || '');
   const requestFilters: Record<string, string> | undefined = useMemo(() => {
     const nextFilters: Record<string, string> = {
@@ -218,8 +237,27 @@ export default function ApplicationList() {
   }, [currentStatus, setSortBy, setSortDirection, sortBy]);
 
   useEffect(() => {
+    if (!initializedPageReset.current) {
+      initializedPageReset.current = true;
+      return;
+    }
     setPage(1);
   }, [filters, sortBy, sortDirection]);
+
+  useEffect(() => {
+    const returnState = location.state as {
+      fromCompare?: boolean;
+      scrollTop?: number;
+    } | null;
+    if (!returnState?.fromCompare || loading) return;
+    const frame = window.requestAnimationFrame(() => {
+      document
+        .querySelector('.layout-main')
+        ?.scrollTo({ top: returnState.scrollTop || 0 });
+      navigate('/applications', { replace: true, state: null });
+    });
+    return () => window.cancelAnimationFrame(frame);
+  }, [loading, location.state, navigate]);
   const totalFiltered: number = sortedData.length;
   const totalPages: number = Math.max(1, Math.ceil(totalFiltered / PAGE_SIZE));
   const safePage: number = Math.min(page, totalPages);
@@ -268,6 +306,21 @@ export default function ApplicationList() {
         item.fields['流程时间']?.[stage as ApplicationProcessStage],
       review: matched,
     });
+  };
+
+  const toggleComparison = (item: ApplicationRecord): void => {
+    if (!item.record_id) return;
+    const result = toggleCompareId(compareIds, item.record_id);
+    if (result.limitReached) {
+      toast.info('最多同时对比 3 个岗位');
+      return;
+    }
+    setCompareIds(result.ids);
+  };
+
+  const leaveCompareMode = (): void => {
+    setCompareMode(false);
+    setCompareIds([]);
   };
 
   const openReviewContext = (item: ApplicationRecord): void => {
@@ -419,6 +472,19 @@ export default function ApplicationList() {
         }
         actions={
           <>
+            <Button
+              type="button"
+              variant="outline"
+              className={
+                compareMode ? 'border-primary bg-primary-soft text-primary' : ''
+              }
+              onClick={() =>
+                compareMode ? leaveCompareMode() : setCompareMode(true)
+              }
+            >
+              <GitCompareArrows />
+              {compareMode ? '退出对比' : '对比岗位'}
+            </Button>
             <Button asChild variant="outline">
               <Link to="/">
                 <LayoutGrid />
@@ -674,6 +740,11 @@ export default function ApplicationList() {
                     onOpenReview={(stage: string) =>
                       void openReviewEditor(item, stage)
                     }
+                    compareMode={compareMode}
+                    selected={Boolean(
+                      item.record_id && compareIds.includes(item.record_id),
+                    )}
+                    onToggleCompare={() => toggleComparison(item)}
                   />
                 ))}
               </TableBody>
@@ -691,6 +762,11 @@ export default function ApplicationList() {
                 onUpdate={(fields) => handleQuickUpdate(item, fields)}
                 reviewCount={reviewCounts[item.record_id || ''] || 0}
                 onOpenReview={() => openReviewContext(item)}
+                compareMode={compareMode}
+                selected={Boolean(
+                  item.record_id && compareIds.includes(item.record_id),
+                )}
+                onToggleCompare={() => toggleComparison(item)}
               />
             ))}
           </div>
@@ -701,6 +777,43 @@ export default function ApplicationList() {
             pageSize={PAGE_SIZE}
             onPageChange={setPage}
           />
+          {compareMode && (
+            <div className="sticky bottom-4 z-40 mx-auto flex w-[min(94vw,680px)] flex-col gap-3 rounded-xl border border-primary/30 bg-surface-floating/95 px-4 py-3 shadow-lg backdrop-blur-xl sm:flex-row sm:items-center">
+              <div className="min-w-0 flex-1">
+                <p className="text-sm font-bold text-foreground">
+                  已选择 {compareIds.length}/3 个岗位
+                </p>
+                <p className="text-xs text-foreground-muted">
+                  可切换筛选或翻页继续选择，至少选择 2 个。
+                </p>
+              </div>
+              <Button
+                variant="ghost"
+                onClick={() => setCompareIds([])}
+                disabled={compareIds.length === 0}
+              >
+                清空
+              </Button>
+              <Button
+                disabled={compareIds.length < 2}
+                onClick={() => {
+                  const scrollContainer =
+                    document.querySelector('.layout-main');
+                  navigate(
+                    `/applications/compare?ids=${compareIds.join(',')}`,
+                    {
+                      state: {
+                        returnPage: safePage,
+                        scrollTop: scrollContainer?.scrollTop || 0,
+                      },
+                    },
+                  );
+                }}
+              >
+                开始对比
+              </Button>
+            </div>
+          )}
         </>
       )}
 
@@ -1066,6 +1179,26 @@ function StageTimeCell({
   );
 }
 
+const COMPARE_ROW_INTERACTIVE_SELECTOR = [
+  'a',
+  'button',
+  'input',
+  'textarea',
+  'select',
+  '[contenteditable="true"]',
+  '[role="button"]',
+  '[role="combobox"]',
+  '[role="dialog"]',
+  '[role="menuitem"]',
+].join(',');
+
+function isInteractiveCompareTarget(target: EventTarget | null): boolean {
+  return (
+    target instanceof Element &&
+    Boolean(target.closest(COMPARE_ROW_INTERACTIVE_SELECTOR))
+  );
+}
+
 function ApplicationTableRow({
   item,
   onDelete,
@@ -1074,6 +1207,9 @@ function ApplicationTableRow({
   onUpdate,
   reviewCount,
   onOpenReview,
+  compareMode,
+  selected,
+  onToggleCompare,
 }: {
   item: ApplicationRecord;
   onDelete: () => void;
@@ -1082,6 +1218,9 @@ function ApplicationTableRow({
   onUpdate: (fields: Partial<ApplicationRecord['fields']>) => Promise<boolean>;
   reviewCount: number;
   onOpenReview: (stage: string) => void;
+  compareMode: boolean;
+  selected: boolean;
+  onToggleCompare: () => void;
 }) {
   const fields: ApplicationRecord['fields'] = item.fields;
   const status: string = fields['当前进度'] || '收藏';
@@ -1092,10 +1231,32 @@ function ApplicationTableRow({
     fields['任职要求']?.trim(),
   );
 
+  const handleRowClick = (
+    event: React.MouseEvent<HTMLTableRowElement>,
+  ): void => {
+    if (!compareMode || isInteractiveCompareTarget(event.target)) return;
+    onToggleCompare();
+  };
+
   return (
-    <TableRow className="group border-border hover:bg-primary-soft">
+    <TableRow
+      aria-selected={compareMode ? selected : undefined}
+      onClick={handleRowClick}
+      className={cn(
+        'group border-border hover:bg-primary-soft',
+        compareMode && 'cursor-pointer',
+        selected && 'bg-primary-soft/80 hover:bg-primary-soft',
+      )}
+    >
       <TableCell className="max-w-[220px] px-4 py-3 align-middle">
         <div className="flex items-center gap-1.5">
+          {compareMode && (
+            <Checkbox
+              checked={selected}
+              onCheckedChange={onToggleCompare}
+              aria-label={`选择${fields['公司名称']}的${fields['岗位名称']}进行对比`}
+            />
+          )}
           <span className={cn('size-1.5 shrink-0 rounded-full', theme.dot)} />
           <span className="truncate text-sm font-bold text-foreground ">
             {fields['公司名称'] || '-'}
@@ -1207,6 +1368,9 @@ function ApplicationMobileCard({
   onUpdate,
   reviewCount,
   onOpenReview,
+  compareMode,
+  selected,
+  onToggleCompare,
 }: {
   item: ApplicationRecord;
   onDelete: () => void;
@@ -1215,26 +1379,53 @@ function ApplicationMobileCard({
   onUpdate: (fields: Partial<ApplicationRecord['fields']>) => Promise<boolean>;
   reviewCount: number;
   onOpenReview: () => void;
+  compareMode: boolean;
+  selected: boolean;
+  onToggleCompare: () => void;
 }) {
   const fields: ApplicationRecord['fields'] = item.fields;
   const status: string = fields['当前进度'] || '收藏';
   const theme: ApplicationStatusTheme = getApplicationStatusTheme(status);
   const display: StageTimeDisplay = getCurrentStageTime(fields);
 
+  const handleCardClick = (event: React.MouseEvent<HTMLElement>): void => {
+    if (!compareMode || isInteractiveCompareTarget(event.target)) return;
+    onToggleCompare();
+  };
+
   return (
-    <article className="relative overflow-hidden rounded-xl border border-border bg-surface-elevated/80 p-4 shadow-[var(--shadow)] backdrop-blur-sm">
+    <article
+      onClick={handleCardClick}
+      className={cn(
+        'relative overflow-hidden rounded-xl border bg-surface-elevated/80 p-4 shadow-[var(--shadow)] backdrop-blur-sm transition-colors',
+        compareMode && 'cursor-pointer',
+        selected
+          ? 'border-primary/50 bg-primary-soft'
+          : 'border-border',
+      )}
+    >
       <div
         className={`absolute inset-x-0 top-0 h-0.5 bg-gradient-to-r ${theme.rail} to-transparent`}
       />
       {/* 1. 公司与岗位 */}
       <div className="flex items-start justify-between gap-4">
-        <div className="min-w-0">
-          <h2 className="truncate text-base font-bold text-foreground ">
-            {fields['公司名称'] || '-'}
-          </h2>
-          <p className="mt-0.5 truncate text-sm font-medium text-foreground-secondary ">
-            {fields['岗位名称'] || '-'}
-          </p>
+        <div className="flex min-w-0 items-start gap-2">
+          {compareMode && (
+            <Checkbox
+              checked={selected}
+              onCheckedChange={onToggleCompare}
+              aria-label={`选择${fields['公司名称']}的${fields['岗位名称']}进行对比`}
+              className="mt-1"
+            />
+          )}
+          <div className="min-w-0">
+            <h2 className="truncate text-base font-bold text-foreground ">
+              {fields['公司名称'] || '-'}
+            </h2>
+            <p className="mt-0.5 truncate text-sm font-medium text-foreground-secondary ">
+              {fields['岗位名称'] || '-'}
+            </p>
+          </div>
         </div>
         {/* 2. 当前进度 */}
         <ApplicationStatusSelect
@@ -1606,9 +1797,103 @@ function ApplicationDetailDrawer({
             saving={saving}
             onSave={(value: string) => onUpdate({ 简历标识: value })}
           />
+          <DrawerDecisionSection
+            fields={fields}
+            saving={saving}
+            onUpdate={onUpdate}
+          />
         </div>
       </SheetContent>
     </Sheet>
+  );
+}
+
+function DrawerDecisionSection({
+  fields,
+  saving,
+  onUpdate,
+}: {
+  fields?: ApplicationRecord['fields'];
+  saving: boolean;
+  onUpdate: (fields: Partial<ApplicationRecord['fields']>) => Promise<boolean>;
+}) {
+  const [open, setOpen] = useState(false);
+  return (
+    <Collapsible open={open} onOpenChange={setOpen}>
+      <section className="rounded-xl border border-border bg-surface-elevated/85 p-4">
+        <CollapsibleTrigger className="group flex w-full items-center justify-between text-left">
+          <div>
+            <p className="text-sm font-bold text-foreground">
+              我的判断（可选）
+            </p>
+            <p className="mt-0.5 text-xs text-foreground-muted">
+              用于岗位对比，不参与流程状态
+            </p>
+          </div>
+          <ChevronDown className="size-4 text-foreground-muted transition-transform group-data-[state=open]:rotate-180" />
+        </CollapsibleTrigger>
+        <CollapsibleContent className="space-y-4 pt-4">
+          {(['能力匹配', '主观意愿'] as const).map((key) => (
+            <div key={key}>
+              <p className="mb-1.5 text-xs font-bold text-foreground-muted">
+                {key}
+              </p>
+              <div className="grid grid-cols-4 gap-1.5">
+                <Button
+                  type="button"
+                  variant={!fields?.[key] ? 'default' : 'outline'}
+                  size="sm"
+                  disabled={saving}
+                  onClick={() => void onUpdate({ [key]: null })}
+                >
+                  未评估
+                </Button>
+                {DECISION_LEVEL_OPTIONS.map((option) => (
+                  <Button
+                    type="button"
+                    key={option.value}
+                    variant={
+                      fields?.[key] === option.value ? 'default' : 'outline'
+                    }
+                    size="sm"
+                    disabled={saving}
+                    onClick={() =>
+                      void onUpdate({ [key]: option.value as DecisionLevel })
+                    }
+                  >
+                    {option.label}
+                  </Button>
+                ))}
+              </div>
+            </div>
+          ))}
+          <div>
+            <p className="text-xs font-bold text-foreground-muted">岗位亮点</p>
+            <InlineFieldEditor
+              label="岗位亮点"
+              value={fields?.岗位亮点}
+              emptyText="点击补充岗位亮点"
+              multiline
+              disabled={saving}
+              triggerClassName="mt-1 w-full text-sm leading-6 text-foreground-secondary"
+              onSave={(value) => onUpdate({ 岗位亮点: value })}
+            />
+          </div>
+          <div>
+            <p className="text-xs font-bold text-foreground-muted">主要顾虑</p>
+            <InlineFieldEditor
+              label="主要顾虑"
+              value={fields?.主要顾虑}
+              emptyText="点击补充主要顾虑"
+              multiline
+              disabled={saving}
+              triggerClassName="mt-1 w-full text-sm leading-6 text-foreground-secondary"
+              onSave={(value) => onUpdate({ 主要顾虑: value })}
+            />
+          </div>
+        </CollapsibleContent>
+      </section>
+    </Collapsible>
   );
 }
 

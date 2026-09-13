@@ -1,9 +1,13 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ArrowLeft, ChevronDown, Send } from 'lucide-react';
 import { api } from '@/api';
 import { useStats } from '@/hooks/useApplications';
 import { useSessionState } from '@/hooks/useSessionState';
+import {
+  APPLICATION_FORM_SECTION_IDS,
+  useFormSectionNavigation,
+} from '@/hooks/useFormSectionNavigation';
 import { CompactStepper, PageHeader } from '@/components/page-ui';
 import { Button } from '@/components/ui/button';
 import {
@@ -14,6 +18,7 @@ import {
 import { LocationMultiSelect } from '@/components/application/LocationMultiSelect';
 import { DateTimePicker } from '@/components/application/DateTimePicker';
 import { StageTimeChips } from '@/components/application/StageTimeChips';
+import { JobChoiceFields } from '@/components/application/JobChoiceFields';
 import {
   Select,
   SelectContent,
@@ -49,13 +54,13 @@ type FormData = {
   岗位职责: string;
   任职要求: string;
   简历标识: string;
+  薪资: string;
+  工作方式: '' | 'onsite' | 'hybrid' | 'remote';
+  能力匹配: 1 | 2 | 3 | null;
+  主观意愿: 1 | 2 | 3 | null;
+  岗位亮点: string;
+  主要顾虑: string;
 };
-
-const FORM_SECTION_IDS = [
-  'application-basic-information',
-  'application-progress-and-time',
-  'application-additional-information',
-] as const;
 
 const initialForm: FormData = {
   公司名称: '',
@@ -75,6 +80,12 @@ const initialForm: FormData = {
   岗位职责: '',
   任职要求: '',
   简历标识: '',
+  薪资: '',
+  工作方式: '',
+  能力匹配: null,
+  主观意愿: null,
+  岗位亮点: '',
+  主要顾虑: '',
 };
 
 export default function AddApplication() {
@@ -87,81 +98,8 @@ export default function AddApplication() {
   } = useSessionState<FormData>('add-application:form', initialForm);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
-  const [activeStep, setActiveStep] = useState<number>(0);
-
-  useEffect(() => {
-    let animationFrame: number | null = null;
-    const scrollContainer: HTMLElement | null =
-      document.querySelector('.layout-main');
-
-    const updateActiveStep = (): void => {
-      animationFrame = null;
-      const containerAtBottom: boolean = Boolean(
-        scrollContainer &&
-        scrollContainer.scrollTop > 0 &&
-        scrollContainer.scrollTop + scrollContainer.clientHeight >=
-          scrollContainer.scrollHeight - 4,
-      );
-      const windowAtBottom: boolean =
-        window.scrollY > 0 &&
-        window.scrollY + window.innerHeight >=
-          document.documentElement.scrollHeight - 4;
-
-      if (containerAtBottom || windowAtBottom) {
-        setActiveStep(FORM_SECTION_IDS.length - 1);
-        return;
-      }
-
-      const activationLine: number = Math.min(window.innerHeight * 0.25, 180);
-      let nextStep: number = 0;
-
-      FORM_SECTION_IDS.forEach((id: string, index: number) => {
-        const section: HTMLElement | null = document.getElementById(id);
-        if (section && section.getBoundingClientRect().top <= activationLine) {
-          nextStep = index;
-        }
-      });
-
-      setActiveStep((current: number) =>
-        current === nextStep ? current : nextStep,
-      );
-    };
-
-    const scheduleUpdate = (): void => {
-      if (animationFrame !== null) return;
-      animationFrame = window.requestAnimationFrame(updateActiveStep);
-    };
-
-    window.addEventListener('scroll', scheduleUpdate, { passive: true });
-    window.addEventListener('resize', scheduleUpdate);
-    scrollContainer?.addEventListener('scroll', scheduleUpdate, {
-      passive: true,
-    });
-    scheduleUpdate();
-
-    return () => {
-      window.removeEventListener('scroll', scheduleUpdate);
-      window.removeEventListener('resize', scheduleUpdate);
-      scrollContainer?.removeEventListener('scroll', scheduleUpdate);
-      if (animationFrame !== null) window.cancelAnimationFrame(animationFrame);
-    };
-  }, []);
-
-  const handleStepClick = (index: number): void => {
-    const section: HTMLElement | null = document.getElementById(
-      FORM_SECTION_IDS[index],
-    );
-    if (!section) return;
-
-    setActiveStep(index);
-    const reduceMotion: boolean = window.matchMedia(
-      '(prefers-reduced-motion: reduce)',
-    ).matches;
-    section.scrollIntoView({
-      behavior: reduceMotion ? 'auto' : 'smooth',
-      block: 'start',
-    });
-  };
+  const { activeStep, setActiveStep, handleStepClick } =
+    useFormSectionNavigation();
   const [showFullProcess, setShowFullProcess] = useState(false);
 
   const update = (key: keyof FormData, value: any) =>
@@ -276,7 +214,12 @@ export default function AddApplication() {
 
       <form onSubmit={handleSubmit} className="space-y-5">
         {/* 第一步：基本信息 */}
-        <FormSection id={FORM_SECTION_IDS[0]} step={1} title="基本信息">
+        <FormSection
+          id={APPLICATION_FORM_SECTION_IDS[0]}
+          step={1}
+          title="基本信息"
+          onActivate={() => setActiveStep(0)}
+        >
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <FormField label="公司名称 *" required>
               <input
@@ -363,7 +306,12 @@ export default function AddApplication() {
         </FormSection>
 
         {/* 第二步：进度与时间 */}
-        <FormSection id={FORM_SECTION_IDS[1]} step={2} title="进度与时间">
+        <FormSection
+          id={APPLICATION_FORM_SECTION_IDS[1]}
+          step={2}
+          title="进度与时间"
+          onActivate={() => setActiveStep(1)}
+        >
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-3">
             <FormField label="当前进度">
               <Select
@@ -432,9 +380,10 @@ export default function AddApplication() {
 
         {/* 第三步：补充信息 / 材料与备注 */}
         <FormSection
-          id={FORM_SECTION_IDS[2]}
+          id={APPLICATION_FORM_SECTION_IDS[2]}
           step={3}
           title="补充信息 · 材料与备注"
+          onActivate={() => setActiveStep(2)}
         >
           <div>
             <FormField label="简历标识">
@@ -478,6 +427,7 @@ export default function AddApplication() {
               />
             </FormField>
           </div>
+          <JobChoiceFields value={form} onChange={update} />
         </FormSection>
 
         {/* 提交：sticky 操作栏 */}
@@ -509,15 +459,22 @@ function FormSection({
   id,
   step,
   title,
+  onActivate,
   children,
 }: {
   id: string;
   step: number;
   title: string;
+  onActivate: () => void;
   children: React.ReactNode;
 }) {
   return (
-    <section id={id} className="ui-surface form-section scroll-mt-5 p-4 sm:p-5">
+    <section
+      id={id}
+      className="ui-surface form-section scroll-mt-5 p-4 sm:p-5"
+      onFocusCapture={onActivate}
+      onPointerDownCapture={onActivate}
+    >
       <h2 className="mb-4 flex items-center gap-2 border-b border-border pb-3 text-base font-semibold text-foreground">
         <span className="flex size-6 items-center justify-center rounded-full bg-primary/10 text-xs font-bold text-primary">
           {step}
