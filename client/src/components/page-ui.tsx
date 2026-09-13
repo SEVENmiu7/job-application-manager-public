@@ -17,6 +17,7 @@ interface PageHeaderProps {
   description?: ReactNode;
   leading?: ReactNode;
   actions?: ReactNode;
+  actionsClassName?: string;
 }
 
 export function PageHeader({
@@ -25,6 +26,7 @@ export function PageHeader({
   description,
   leading,
   actions,
+  actionsClassName,
 }: PageHeaderProps) {
   return (
     <header className="glass-panel relative overflow-hidden px-5 py-4 md:px-6">
@@ -49,7 +51,12 @@ export function PageHeader({
           </div>
         </div>
         {actions && (
-          <div className="flex flex-wrap items-center gap-2 self-start md:self-auto">
+          <div
+            className={cn(
+              'flex flex-wrap items-center gap-2 self-start md:self-auto',
+              actionsClassName,
+            )}
+          >
             {actions}
           </div>
         )}

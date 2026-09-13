@@ -179,6 +179,13 @@ export const applications = pgTable("applications", {
   processTimes: text("process_times"),
   createdAt: timestamp("created_at", { mode: 'string' }).notNull().default(sql`CURRENT_TIMESTAMP`),
   updatedAt: timestamp("updated_at", { mode: 'string' }).notNull().default(sql`CURRENT_TIMESTAMP`),
+  salary: varchar("salary", { length: 128 }),
+  applicationDeadline: timestamp("application_deadline", { mode: 'string' }),
+  workMode: varchar("work_mode", { length: 32 }),
+  fitLevel: integer("fit_level"),
+  interestLevel: integer("interest_level"),
+  jobHighlights: text("job_highlights"),
+  jobConcerns: text("job_concerns"),
   // System field: Creator (auto-filled, do not modify)
   createdBy: userProfile("_created_by").default(sql`CASE
     WHEN (current_setting('app.user_id'::text, true) = ''::text) THEN NULL`),

@@ -101,6 +101,12 @@ export class ApplicationService {
         个人备注: row.notes || '',
         岗位职责: row.jobResponsibilities || '',
         任职要求: row.jobRequirements || '',
+        薪资: row.salary || '',
+        工作方式: row.workMode || undefined,
+        能力匹配: row.fitLevel || undefined,
+        主观意愿: row.interestLevel || undefined,
+        岗位亮点: row.jobHighlights || '',
+        主要顾虑: row.jobConcerns || '',
         看板顺序: row.boardOrder,
         简历标识: row.resumeTag || '',
       },
@@ -122,6 +128,12 @@ export class ApplicationService {
           processTimes: applications.processTimes,
           status: applications.status,
           nextStep: applications.nextStep,
+          salary: applications.salary,
+          workMode: applications.workMode,
+          fitLevel: applications.fitLevel,
+          interestLevel: applications.interestLevel,
+          jobHighlights: applications.jobHighlights,
+          jobConcerns: applications.jobConcerns,
           boardOrder: applications.boardOrder,
           createdAt: applications.createdAt,
           updatedAt: applications.updatedAt,
@@ -153,6 +165,12 @@ export class ApplicationService {
         当前进度: row.status || '收藏',
         下一步安排: row.nextStep || '',
         个人备注: '',
+        薪资: row.salary || '',
+        工作方式: row.workMode || undefined,
+        能力匹配: row.fitLevel || undefined,
+        主观意愿: row.interestLevel || undefined,
+        岗位亮点: row.jobHighlights || '',
+        主要顾虑: row.jobConcerns || '',
         看板顺序: row.boardOrder,
         简历标识: '',
       },
@@ -185,6 +203,12 @@ export class ApplicationService {
         个人备注: row.notes || '',
         岗位职责: row.jobResponsibilities || '',
         任职要求: row.jobRequirements || '',
+        薪资: row.salary || '',
+        工作方式: row.workMode || undefined,
+        能力匹配: row.fitLevel || undefined,
+        主观意愿: row.interestLevel || undefined,
+        岗位亮点: row.jobHighlights || '',
+        主要顾虑: row.jobConcerns || '',
         看板顺序: row.boardOrder,
         简历标识: row.resumeTag || '',
       },
@@ -223,6 +247,12 @@ export class ApplicationService {
         notes: this.getNullableString(fields, '个人备注'),
         jobResponsibilities: this.getNullableString(fields, '岗位职责'),
         jobRequirements: this.getNullableString(fields, '任职要求'),
+        salary: this.getNullableString(fields, '薪资'),
+        workMode: this.getNullableString(fields, '工作方式'),
+        fitLevel: this.getDecisionLevel(fields, '能力匹配'),
+        interestLevel: this.getDecisionLevel(fields, '主观意愿'),
+        jobHighlights: this.getNullableString(fields, '岗位亮点'),
+        jobConcerns: this.getNullableString(fields, '主要顾虑'),
         boardOrder: this.getNullableNumber(fields, '看板顺序'),
         resumeTag: this.getNullableString(fields, '简历标识'),
         createdAt: now,
@@ -344,6 +374,18 @@ export class ApplicationService {
       updates.jobResponsibilities = this.getNullableString(fields, '岗位职责');
     if ('任职要求' in fields)
       updates.jobRequirements = this.getNullableString(fields, '任职要求');
+    if ('薪资' in fields)
+      updates.salary = this.getNullableString(fields, '薪资');
+    if ('工作方式' in fields)
+      updates.workMode = this.getNullableString(fields, '工作方式');
+    if ('能力匹配' in fields)
+      updates.fitLevel = this.getDecisionLevel(fields, '能力匹配');
+    if ('主观意愿' in fields)
+      updates.interestLevel = this.getDecisionLevel(fields, '主观意愿');
+    if ('岗位亮点' in fields)
+      updates.jobHighlights = this.getNullableString(fields, '岗位亮点');
+    if ('主要顾虑' in fields)
+      updates.jobConcerns = this.getNullableString(fields, '主要顾虑');
     if ('看板顺序' in fields)
       updates.boardOrder = this.getNullableNumber(fields, '看板顺序');
     if ('简历标识' in fields)
@@ -492,6 +534,14 @@ export class ApplicationService {
   ): number | null {
     const value: unknown = fields[key];
     return typeof value === 'number' && Number.isFinite(value) ? value : null;
+  }
+
+  private getDecisionLevel(
+    fields: Record<string, unknown>,
+    key: string,
+  ): number | null {
+    const value: unknown = fields[key];
+    return value === 1 || value === 2 || value === 3 ? value : null;
   }
 
   private getStringArrayJson(

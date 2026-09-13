@@ -116,7 +116,8 @@ export default function Layout() {
     const active: boolean =
       item.path === '/applications'
         ? location.pathname === '/applications' ||
-          location.pathname.startsWith('/applications/edit/')
+          location.pathname.startsWith('/applications/edit/') ||
+          location.pathname.startsWith('/applications/compare')
         : item.exact
           ? location.pathname === item.path
           : location.pathname.startsWith(item.path);

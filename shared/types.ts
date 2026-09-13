@@ -19,6 +19,12 @@ export interface ApplicationRecord {
     个人备注: string;
     岗位职责?: string;
     任职要求?: string;
+    薪资?: string;
+    工作方式?: WorkMode | null;
+    能力匹配?: DecisionLevel | null;
+    主观意愿?: DecisionLevel | null;
+    岗位亮点?: string;
+    主要顾虑?: string;
     看板顺序?: number;
     简历?: any[];
     简历标识: string;
@@ -26,6 +32,22 @@ export interface ApplicationRecord {
   created_at?: string;
   updated_at?: string;
 }
+
+export type WorkMode = 'onsite' | 'hybrid' | 'remote';
+export type DecisionLevel = 1 | 2 | 3;
+
+export const WORK_MODE_OPTIONS: { value: WorkMode; label: string }[] = [
+  { value: 'onsite', label: '现场办公' },
+  { value: 'hybrid', label: '混合办公' },
+  { value: 'remote', label: '远程办公' },
+];
+
+export const DECISION_LEVEL_OPTIONS: { value: DecisionLevel; label: string }[] =
+  [
+    { value: 1, label: '低' },
+    { value: 2, label: '中' },
+    { value: 3, label: '高' },
+  ];
 
 export type ApplicationProcessStage =
   | '测评'

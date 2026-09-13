@@ -15,6 +15,9 @@ const EditApplication = lazy(
   () => import('./pages/EditApplication/EditApplication'),
 );
 const Scraping = lazy(() => import('./pages/Scraping/Scraping'));
+const ApplicationCompare = lazy(
+  () => import('./pages/ApplicationCompare/ApplicationCompare'),
+);
 
 const RoutesComponent = () => {
   return (
@@ -29,6 +32,10 @@ const RoutesComponent = () => {
           <Route
             path="applications/new"
             element={<LazyPage component={<AddApplication />} />}
+          />
+          <Route
+            path="applications/compare"
+            element={<LazyPage component={<ApplicationCompare />} />}
           />
           <Route
             path="applications/edit/:id"

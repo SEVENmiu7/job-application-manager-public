@@ -4,6 +4,10 @@ import { ArrowLeft, ChevronDown, Send, Loader2 } from 'lucide-react';
 import { api } from '@/api';
 import { useStats } from '@/hooks/useApplications';
 import { useSessionState } from '@/hooks/useSessionState';
+import {
+  APPLICATION_FORM_SECTION_IDS,
+  useFormSectionNavigation,
+} from '@/hooks/useFormSectionNavigation';
 import { CompactStepper, PageHeader } from '@/components/page-ui';
 import { Button } from '@/components/ui/button';
 import {
@@ -14,6 +18,7 @@ import {
 import { LocationMultiSelect } from '@/components/application/LocationMultiSelect';
 import { DateTimePicker } from '@/components/application/DateTimePicker';
 import { StageTimeChips } from '@/components/application/StageTimeChips';
+import { JobChoiceFields } from '@/components/application/JobChoiceFields';
 import {
   Select,
   SelectContent,
@@ -49,6 +54,12 @@ type FormData = {
   岗位职责: string;
   任职要求: string;
   简历标识: string;
+  薪资: string;
+  工作方式: '' | 'onsite' | 'hybrid' | 'remote';
+  能力匹配: 1 | 2 | 3 | null;
+  主观意愿: 1 | 2 | 3 | null;
+  岗位亮点: string;
+  主要顾虑: string;
 };
 
 const initialForm: FormData = {
@@ -69,6 +80,12 @@ const initialForm: FormData = {
   岗位职责: '',
   任职要求: '',
   简历标识: '',
+  薪资: '',
+  工作方式: '',
+  能力匹配: null,
+  主观意愿: null,
+  岗位亮点: '',
+  主要顾虑: '',
 };
 
 export default function EditApplication() {
@@ -79,6 +96,8 @@ export default function EditApplication() {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
   const [showFullProcess, setShowFullProcess] = useState(false);
+  const { activeStep, setActiveStep, handleStepClick } =
+    useFormSectionNavigation();
 
   const {
     value: form,
@@ -123,6 +142,12 @@ export default function EditApplication() {
             岗位职责: f['岗位职责'] || '',
             任职要求: f['任职要求'] || '',
             简历标识: f['简历标识'] || '',
+            薪资: f['薪资'] || '',
+            工作方式: f['工作方式'] || '',
+            能力匹配: f['能力匹配'] || null,
+            主观意愿: f['主观意愿'] || null,
+            岗位亮点: f['岗位亮点'] || '',
+            主要顾虑: f['主要顾虑'] || '',
           });
         }
       })
@@ -229,16 +254,25 @@ export default function EditApplication() {
         </div>
       )}
 
-      <CompactStepper
-        steps={[
-          { label: '基本信息' },
-          { label: '进度与时间' },
-          { label: '补充信息' },
-        ]}
-      />
+      <section className="glass-panel px-4 py-3" aria-label="编辑投递流程">
+        <CompactStepper
+          activeIndex={activeStep}
+          onStepClick={handleStepClick}
+          steps={[
+            { label: '基本信息', hint: '填写公司与岗位' },
+            { label: '进度与时间', hint: '记录阶段与关键日期' },
+            { label: '补充信息', hint: '完善材料与备注' },
+          ]}
+        />
+      </section>
 
       <form onSubmit={handleSubmit} className="space-y-5">
-        <FormSection step={1} title="基本信息">
+        <FormSection
+          id={APPLICATION_FORM_SECTION_IDS[0]}
+          step={1}
+          title="基本信息"
+          onActivate={() => setActiveStep(0)}
+        >
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <FormField label="公司名称 *">
               <input
@@ -321,7 +355,12 @@ export default function EditApplication() {
           </FormField>
         </FormSection>
 
-        <FormSection step={2} title="进度与时间">
+        <FormSection
+          id={APPLICATION_FORM_SECTION_IDS[1]}
+          step={2}
+          title="进度与时间"
+          onActivate={() => setActiveStep(1)}
+        >
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-3">
             <FormField label="当前进度">
               <Select
@@ -386,7 +425,12 @@ export default function EditApplication() {
           </Collapsible>
         </FormSection>
 
-        <FormSection step={3} title="补充信息 · 材料与备注">
+        <FormSection
+          id={APPLICATION_FORM_SECTION_IDS[2]}
+          step={3}
+          title="补充信息 · 材料与备注"
+          onActivate={() => setActiveStep(2)}
+        >
           <div>
             <FormField label="简历标识">
               <input
@@ -427,6 +471,7 @@ export default function EditApplication() {
               />
             </FormField>
           </div>
+          <JobChoiceFields value={form} onChange={update} />
         </FormSection>
 
         <div className="sticky bottom-4 z-20 rounded-xl border border-border bg-surface-elevated/90 px-4 py-3 shadow-[var(--shadow)] backdrop-blur-md">
@@ -451,16 +496,25 @@ export default function EditApplication() {
 }
 
 function FormSection({
+  id,
   step,
   title,
+  onActivate,
   children,
 }: {
+  id: string;
   step: number;
   title: string;
+  onActivate: () => void;
   children: React.ReactNode;
 }) {
   return (
-    <section className="ui-surface form-section p-4 sm:p-5">
+    <section
+      id={id}
+      className="ui-surface form-section scroll-mt-5 p-4 sm:p-5"
+      onFocusCapture={onActivate}
+      onPointerDownCapture={onActivate}
+    >
       <h2 className="mb-4 flex items-center gap-2 border-b border-border pb-3 text-base font-semibold text-foreground">
         <span className="flex size-6 items-center justify-center rounded-full bg-primary/10 text-xs font-bold text-primary">
           {step}

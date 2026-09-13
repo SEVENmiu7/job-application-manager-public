@@ -31,6 +31,34 @@ describe('个人数据管理', () => {
     expect(service).not.toContain('userId: row.userId');
   });
 
+  it('个人数据备份包含岗位对比字段', () => {
+    const service: string = read(
+      'server/modules/data-privacy/data-privacy.service.ts',
+    );
+    const exportPage: string = read(
+      'client/src/pages/PrivacySettings/PrivacySettings.tsx',
+    );
+
+    for (const field of [
+      'salary',
+      'jobHighlights',
+      'jobConcerns',
+    ]) {
+      expect(service).toContain(`${field}: row.${field}`);
+      expect(exportPage).toContain(`application.${field}`);
+    }
+    expect(service).toContain('workMode: this.parseWorkMode(row.workMode)');
+    expect(service).toContain(
+      'fitLevel: this.parseDecisionLevel(row.fitLevel)',
+    );
+    expect(service).toContain(
+      'interestLevel: this.parseDecisionLevel(row.interestLevel)',
+    );
+    for (const field of ['workMode', 'fitLevel', 'interestLevel']) {
+      expect(exportPage).toContain(`application.${field}`);
+    }
+  });
+
   it.each(['=SUM(A1:A2)', '+1+1', '-2+3', '@cmd'])(
     'Excel 导出会转义可能被识别为公式的文本：%s',
     (value: string) => {

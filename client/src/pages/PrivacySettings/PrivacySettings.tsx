@@ -319,7 +319,8 @@ export default function PrivacySettings() {
 }
 
 const APPLICATION_COLUMN_WIDTHS: number[] = [
-  38, 20, 24, 20, 16, 20, 16, 20, 20, 16, 24, 32, 20, 42, 42, 20, 20, 48,
+  38, 20, 24, 20, 16, 20, 16, 20, 20, 16, 24, 32, 20, 18, 14, 12, 12, 36,
+  36, 42, 42, 20, 20, 48,
 ];
 const REVIEW_COLUMN_WIDTHS: number[] = [
   38, 30, 14, 20, 12, 20, 12, 36, 48, 36, 36, 36, 42, 20, 20,
@@ -340,6 +341,12 @@ function toApplicationRow(application: UserApplicationExport): ExportRow {
     下一步安排: safeSpreadsheetText(application.nextStep),
     个人备注: safeSpreadsheetText(application.notes),
     简历标识: safeSpreadsheetText(application.resumeTag),
+    薪资: safeSpreadsheetText(application.salary),
+    工作方式: formatWorkMode(application.workMode),
+    能力匹配: formatDecisionLevel(application.fitLevel),
+    主观意愿: formatDecisionLevel(application.interestLevel),
+    岗位亮点: safeSpreadsheetText(application.jobHighlights),
+    主要顾虑: safeSpreadsheetText(application.jobConcerns),
     岗位职责: safeSpreadsheetText(application.jobResponsibilities),
     任职要求: safeSpreadsheetText(application.jobRequirements),
     创建时间: formatDateTime(application.createdAt),
@@ -348,6 +355,26 @@ function toApplicationRow(application: UserApplicationExport): ExportRow {
       JSON.stringify(application.processTimes, null, 2),
     ),
   };
+}
+
+function formatWorkMode(value?: UserApplicationExport['workMode']): string {
+  const labels: Record<NonNullable<UserApplicationExport['workMode']>, string> = {
+    onsite: '现场办公',
+    hybrid: '混合办公',
+    remote: '远程办公',
+  };
+  return value ? labels[value] : '';
+}
+
+function formatDecisionLevel(
+  value?: UserApplicationExport['fitLevel'],
+): string {
+  const labels: Record<NonNullable<UserApplicationExport['fitLevel']>, string> = {
+    1: '低',
+    2: '中',
+    3: '高',
+  };
+  return value ? labels[value] : '';
 }
 
 function toReviewRow(

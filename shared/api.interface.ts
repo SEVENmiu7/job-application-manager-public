@@ -1,6 +1,10 @@
 /* 前后端共享的类型写在这里 */
 
-import type { ApplicationProcessTimes } from './types';
+import type {
+  ApplicationProcessTimes,
+  DecisionLevel,
+  WorkMode,
+} from './types';
 
 /** 复盘中的一条问题记录 */
 export interface InterviewReviewQuestion {
@@ -95,6 +99,12 @@ export interface UserApplicationExport {
   resumeTag?: string;
   jobResponsibilities?: string;
   jobRequirements?: string;
+  salary?: string;
+  workMode?: WorkMode;
+  fitLevel?: DecisionLevel;
+  interestLevel?: DecisionLevel;
+  jobHighlights?: string;
+  jobConcerns?: string;
   createdAt: string;
   updatedAt: string;
 }

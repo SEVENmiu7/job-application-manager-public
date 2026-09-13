@@ -15,6 +15,8 @@ import type {
 import {
   PROCESS_TIME_STAGES,
   type ApplicationProcessTimes,
+  type DecisionLevel,
+  type WorkMode,
 } from '@shared/types';
 import { serializeStoredTimestamp } from '@server/modules/application/application-time';
 
@@ -88,6 +90,12 @@ export class DataPrivacyService {
       resumeTag: row.resumeTag || undefined,
       jobResponsibilities: row.jobResponsibilities || undefined,
       jobRequirements: row.jobRequirements || undefined,
+      salary: row.salary || undefined,
+      workMode: this.parseWorkMode(row.workMode),
+      fitLevel: this.parseDecisionLevel(row.fitLevel),
+      interestLevel: this.parseDecisionLevel(row.interestLevel),
+      jobHighlights: row.jobHighlights || undefined,
+      jobConcerns: row.jobConcerns || undefined,
       createdAt: serializeStoredTimestamp(row.createdAt) || '',
       updatedAt: serializeStoredTimestamp(row.updatedAt) || '',
     };
@@ -151,6 +159,16 @@ export class DataPrivacyService {
     } catch {
       return {};
     }
+  }
+
+  private parseWorkMode(value: string | null): WorkMode | undefined {
+    return value === 'onsite' || value === 'hybrid' || value === 'remote'
+      ? value
+      : undefined;
+  }
+
+  private parseDecisionLevel(value: number | null): DecisionLevel | undefined {
+    return value === 1 || value === 2 || value === 3 ? value : undefined;
   }
 
   private parseJsonArray<T>(value: unknown): T[] {
