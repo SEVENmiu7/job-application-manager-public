@@ -3,6 +3,7 @@
 import type {
   ApplicationProcessTimes,
   DecisionLevel,
+  TodoDuePrecision,
   WorkMode,
 } from './types';
 
@@ -112,15 +113,33 @@ export interface UserApplicationExport {
 /** 导出文件中的面试复盘，不包含用户 ID。 */
 export type UserInterviewReviewExport = Omit<InterviewReview, 'userId'>;
 
+/** 导出文件中的求职待办，不包含用户 ID 和平台审计字段。 */
+export interface UserTodoExport {
+  id: string;
+  applicationId?: string;
+  title: string;
+  notes?: string;
+  dueAt?: string;
+  reminderAt?: string;
+  duePrecision: TodoDuePrecision;
+  isImportant: boolean;
+  sortOrder: number;
+  completedAt?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
 /** 当前登录用户的完整数据备份。 */
 export interface UserDataExport {
-  version: 1;
+  version: 2;
   exportedAt: string;
   applications: UserApplicationExport[];
   interviewReviews: UserInterviewReviewExport[];
+  todos: UserTodoExport[];
 }
 
 export interface DeleteMyDataResponse {
   deletedApplications: number;
   deletedInterviewReviews: number;
+  deletedTodos: number;
 }

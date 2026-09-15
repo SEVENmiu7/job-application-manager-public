@@ -18,6 +18,7 @@ const Scraping = lazy(() => import('./pages/Scraping/Scraping'));
 const ApplicationCompare = lazy(
   () => import('./pages/ApplicationCompare/ApplicationCompare'),
 );
+const TodoList = lazy(() => import('./pages/TodoList/TodoList'));
 
 const RoutesComponent = () => {
   return (
@@ -45,6 +46,7 @@ const RoutesComponent = () => {
             path="scraping"
             element={<LazyPage component={<Scraping />} />}
           />
+          <Route path="todos" element={<LazyPage component={<TodoList />} />} />
           <Route path="privacy" element={<PrivacySettings />} />
         </Route>
         <Route path="*" element={<LazyPage component={<NotFound />} />} />

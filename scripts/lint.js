@@ -1,18 +1,14 @@
 #!/usr/bin/env node
 
 const path = require('node:path');
-const { spawn } = require('node:child_process');
+const crossSpawn = require('cross-spawn');
 const fs = require('node:fs');
 
 const cwd = process.cwd();
 
-function getBinName(name) {
-  return process.platform === 'win32' ? `${name}.cmd` : name;
-}
-
 function runCommand(command, args) {
   return new Promise((resolve) => {
-    const child = spawn(command, args, {
+    const child = crossSpawn(command, args, {
       cwd,
       stdio: 'inherit',
       shell: false,
@@ -64,7 +60,7 @@ function isStylelintTarget(filePath) {
 }
 
 async function runDefaultLint() {
-  const code = await runCommand(getBinName('npx'), [
+  const code = await runCommand('npx', [
     'concurrently',
     'npm run eslint',
     'npm run type:check',
@@ -104,19 +100,19 @@ async function runSelectiveLint(inputFiles) {
   const tasks = [];
 
   if (eslintFiles.length > 0) {
-    tasks.push(runCommand(getBinName('npx'), ['eslint', '--quiet', ...eslintFiles]));
+    tasks.push(runCommand('npx', ['eslint', '--quiet', ...eslintFiles]));
   }
 
   if (stylelintFiles.length > 0) {
-    tasks.push(runCommand(getBinName('npx'), ['stylelint', '--quiet', ...stylelintFiles]));
+    tasks.push(runCommand('npx', ['stylelint', '--quiet', ...stylelintFiles]));
   }
 
   if (clientTypeFiles.length > 0) {
-    tasks.push(runCommand(getBinName('npm'), ['run', 'type:check:client']));
+    tasks.push(runCommand('npm', ['run', 'type:check:client']));
   }
 
   if (serverTypeFiles.length > 0) {
-    tasks.push(runCommand(getBinName('npm'), ['run', 'type:check:server']));
+    tasks.push(runCommand('npm', ['run', 'type:check:server']));
   }
 
   if (tasks.length === 0) {

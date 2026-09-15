@@ -3,13 +3,18 @@ import { DRIZZLE_DATABASE } from '@lark-apaas/fullstack-nestjs-core';
 import { count, desc, eq } from 'drizzle-orm';
 import type { PostgresJsDatabase } from 'drizzle-orm/postgres-js';
 
-import { applications, interviewReviews } from '@server/database/schema';
+import {
+  applications,
+  interviewReviews,
+  todos,
+} from '@server/database/schema';
 import type {
   InterviewReviewNextAction,
   InterviewReviewQuestion,
   UserApplicationExport,
   UserDataExport,
   UserInterviewReviewExport,
+  UserTodoExport,
   DeleteMyDataResponse,
 } from '@shared/api.interface';
 import {
@@ -22,6 +27,7 @@ import { serializeStoredTimestamp } from '@server/modules/application/applicatio
 
 type ApplicationRow = typeof applications.$inferSelect;
 type ReviewRow = typeof interviewReviews.$inferSelect;
+type TodoRow = typeof todos.$inferSelect;
 
 @Injectable()
 export class DataPrivacyService {
@@ -41,9 +47,14 @@ export class DataPrivacyService {
       .from(interviewReviews)
       .where(eq(interviewReviews.userId, userId))
       .orderBy(desc(interviewReviews.updatedAt));
+    const todoRows: TodoRow[] = await this.db
+      .select()
+      .from(todos)
+      .where(eq(todos.userId, userId))
+      .orderBy(desc(todos.updatedAt));
 
     return {
-      version: 1,
+      version: 2,
       exportedAt: new Date().toISOString(),
       applications: applicationRows.map(
         (row: ApplicationRow): UserApplicationExport =>
@@ -53,6 +64,9 @@ export class DataPrivacyService {
         (row: ReviewRow): UserInterviewReviewExport =>
           this.serializeReview(row),
       ),
+      todos: todoRows.map(
+        (row: TodoRow): UserTodoExport => this.serializeTodo(row),
+      ),
     };
   }
 
@@ -61,6 +75,10 @@ export class DataPrivacyService {
       .select({ total: count() })
       .from(interviewReviews)
       .where(eq(interviewReviews.userId, userId));
+    const deletedTodos: { id: string }[] = await this.db
+      .delete(todos)
+      .where(eq(todos.userId, userId))
+      .returning({ id: todos.id });
     const deletedApplications: { id: string }[] = await this.db
       .delete(applications)
       .where(eq(applications.userId, userId))
@@ -69,6 +87,7 @@ export class DataPrivacyService {
     return {
       deletedApplications: deletedApplications.length,
       deletedInterviewReviews: Number(reviewCountRows[0]?.total) || 0,
+      deletedTodos: deletedTodos.length,
     };
   }
 
@@ -118,6 +137,23 @@ export class DataPrivacyService {
       nextActions: this.parseJsonArray<InterviewReviewNextAction>(
         row.nextActions,
       ),
+      createdAt: serializeStoredTimestamp(row.createdAt) || '',
+      updatedAt: serializeStoredTimestamp(row.updatedAt) || '',
+    };
+  }
+
+  private serializeTodo(row: TodoRow): UserTodoExport {
+    return {
+      id: row.id,
+      applicationId: row.applicationId || undefined,
+      title: row.title,
+      notes: row.notes || undefined,
+      dueAt: serializeStoredTimestamp(row.dueAt),
+      reminderAt: serializeStoredTimestamp(row.reminderAt),
+      duePrecision: row.duePrecision === 'date' ? 'date' : 'hour',
+      isImportant: row.isImportant,
+      sortOrder: row.sortOrder,
+      completedAt: serializeStoredTimestamp(row.completedAt),
       createdAt: serializeStoredTimestamp(row.createdAt) || '',
       updatedAt: serializeStoredTimestamp(row.updatedAt) || '',
     };

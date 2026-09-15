@@ -38,6 +38,7 @@ import type {
   UserApplicationExport,
   UserDataExport,
   UserInterviewReviewExport,
+  UserTodoExport,
 } from '@shared/api.interface';
 
 import { safeSpreadsheetText } from './privacy-export';
@@ -107,18 +108,26 @@ export default function PrivacySettings() {
         (review: UserInterviewReviewExport): ExportRow =>
           toReviewRow(review, applicationNames),
       );
+      const todoRows: ExportRow[] = data.todos.map(
+        (todo: UserTodoExport): ExportRow =>
+          toTodoRow(todo, applicationNames),
+      );
       const applicationSheet: import('xlsx').WorkSheet =
         XLSX.utils.json_to_sheet(applicationRows);
       const reviewSheet: import('xlsx').WorkSheet =
         XLSX.utils.json_to_sheet(reviewRows);
+      const todoSheet: import('xlsx').WorkSheet =
+        XLSX.utils.json_to_sheet(todoRows);
       applicationSheet['!cols'] = APPLICATION_COLUMN_WIDTHS.map(
         (wch: number) => ({ wch }),
       );
       reviewSheet['!cols'] = REVIEW_COLUMN_WIDTHS.map((wch: number) => ({
         wch,
       }));
+      todoSheet['!cols'] = TODO_COLUMN_WIDTHS.map((wch: number) => ({ wch }));
       XLSX.utils.book_append_sheet(workbook, applicationSheet, '投递记录');
       XLSX.utils.book_append_sheet(workbook, reviewSheet, '面试复盘');
+      XLSX.utils.book_append_sheet(workbook, todoSheet, '求职待办');
       XLSX.writeFile(workbook, `求职投递记录-${getChinaDate()}.xlsx`);
       setFeedback({ tone: 'success', message: 'Excel 文件已下载。' });
     } catch (caughtError: unknown) {
@@ -140,7 +149,10 @@ export default function PrivacySettings() {
       setConfirmation('');
       setFeedback({
         tone: 'success',
-        message: `已删除 ${result.deletedApplications} 条投递记录和 ${result.deletedInterviewReviews} 条面试复盘。`,
+        message:
+          `已删除 ${result.deletedApplications} 条投递记录、` +
+          `${result.deletedInterviewReviews} 条面试复盘和 ` +
+          `${result.deletedTodos} 条求职待办。`,
       });
     } catch (caughtError: unknown) {
       const message: string = getErrorMessage(caughtError, '删除失败');
@@ -224,7 +236,7 @@ export default function PrivacySettings() {
               <div>
                 <CardTitle className="text-lg">导出我的数据</CardTitle>
                 <CardDescription className="mt-1 leading-6">
-                  下载内容仅包含当前登录账号的投递记录和面试复盘。
+                  下载内容仅包含当前登录账号的投递记录、面试复盘和求职待办。
                 </CardDescription>
               </div>
             </div>
@@ -263,7 +275,7 @@ export default function PrivacySettings() {
                   删除我的全部数据
                 </CardTitle>
                 <CardDescription className="mt-1 max-w-2xl leading-6 text-red-700/80">
-                  删除当前账号的全部投递和面试复盘。操作完成后无法恢复，建议先导出备份。
+                  删除当前账号的全部投递、面试复盘和求职待办。操作完成后无法恢复，建议先导出备份。
                 </CardDescription>
               </div>
             </div>
@@ -281,7 +293,7 @@ export default function PrivacySettings() {
                 <AlertDialogHeader>
                   <AlertDialogTitle>确定删除全部个人数据？</AlertDialogTitle>
                   <AlertDialogDescription className="leading-6">
-                    所有投递记录和面试复盘都会永久删除。请输入“
+                    所有投递记录、面试复盘和求职待办都会永久删除。请输入“
                     {DELETE_CONFIRMATION}”确认操作。
                   </AlertDialogDescription>
                 </AlertDialogHeader>
@@ -324,6 +336,9 @@ const APPLICATION_COLUMN_WIDTHS: number[] = [
 ];
 const REVIEW_COLUMN_WIDTHS: number[] = [
   38, 30, 14, 20, 12, 20, 12, 36, 48, 36, 36, 36, 42, 20, 20,
+];
+const TODO_COLUMN_WIDTHS: number[] = [
+  38, 30, 40, 42, 20, 20, 12, 12, 12, 20, 20, 20,
 ];
 
 function toApplicationRow(application: UserApplicationExport): ExportRow {
@@ -399,6 +414,29 @@ function toReviewRow(
     下一步行动: formatNextActions(review.nextActions),
     创建时间: formatDateTime(review.createdAt),
     更新时间: formatDateTime(review.updatedAt),
+  };
+}
+
+function toTodoRow(
+  todo: UserTodoExport,
+  applicationNames: Map<string, string>,
+): ExportRow {
+  const applicationName: string = todo.applicationId
+    ? applicationNames.get(todo.applicationId) || todo.applicationId
+    : '';
+  return {
+    待办编号: todo.id,
+    关联岗位: safeSpreadsheetText(applicationName),
+    待办内容: safeSpreadsheetText(todo.title),
+    备注: safeSpreadsheetText(todo.notes),
+    截止时间: formatDateTime(todo.dueAt),
+    提醒时间: formatDateTime(todo.reminderAt),
+    时间精度: todo.duePrecision === 'date' ? '按日期' : '按小时',
+    重要: todo.isImportant ? '是' : '否',
+    排序: todo.sortOrder,
+    完成时间: formatDateTime(todo.completedAt),
+    创建时间: formatDateTime(todo.createdAt),
+    更新时间: formatDateTime(todo.updatedAt),
   };
 }
 

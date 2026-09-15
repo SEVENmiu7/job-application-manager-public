@@ -82,6 +82,57 @@ export interface ApplicationStats {
   statusCount: Record<string, number>;
 }
 
+export type TodoScope =
+  | 'all'
+  | 'today'
+  | 'planned'
+  | 'important'
+  | 'completed';
+
+export type TodoDuePrecision = 'date' | 'hour';
+
+export interface TodoApplicationSummary {
+  id: string;
+  company: string;
+  position: string;
+}
+
+export interface TodoRecord {
+  id: string;
+  applicationId?: string | null;
+  title: string;
+  notes?: string;
+  dueAt?: string;
+  reminderAt?: string;
+  duePrecision: TodoDuePrecision;
+  isImportant: boolean;
+  sortOrder: number;
+  completedAt?: string;
+  createdAt: string;
+  updatedAt: string;
+  application?: TodoApplicationSummary | null;
+}
+
+export interface TodoSaveInput {
+  applicationId?: string | null;
+  title: string;
+  notes?: string;
+  dueAt?: string | null;
+  reminderAt?: string | null;
+  duePrecision?: TodoDuePrecision;
+  isImportant?: boolean;
+  sortOrder?: number;
+  completed?: boolean;
+  allowDuplicate?: boolean;
+}
+
+export interface TodoSummary {
+  overdueCount: number;
+  todayCount: number;
+  incompleteCount: number;
+  items: TodoRecord[];
+}
+
 export interface Platform {
   id: string;
   name: string;

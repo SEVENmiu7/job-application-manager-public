@@ -13,6 +13,7 @@ import {
   FolderOpen,
   GitCompareArrows,
   LayoutGrid,
+  ListTodo,
   MapPin,
   NotebookPen,
   PlusCircle,
@@ -72,6 +73,7 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { Textarea } from '@/components/ui/textarea';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import {
   Collapsible,
   CollapsibleContent,
@@ -90,6 +92,7 @@ import {
   type StageTimeDisplay,
 } from '@/lib/stage-time';
 import { cn } from '@/lib/utils';
+import { openTodoComposer } from '@/lib/todo-events';
 import {
   APPLICATION_LIST_DEFAULT_SORT_DIRECTIONS,
   getApplicationListSortDirectionLabel,
@@ -1297,14 +1300,31 @@ function ApplicationTableRow({
         />
       </TableCell>
       <TableCell className="py-3 text-center align-middle">
-        <InlineFieldEditor
-          label="下一步安排"
-          value={fields['下一步安排']}
-          emptyText="暂未安排"
-          disabled={saving}
-          triggerClassName="relative w-full justify-center gap-0 px-5 text-center text-[13px] font-semibold leading-5 text-primary [&>svg]:absolute [&>svg]:right-2"
-          onSave={(value: string) => onUpdate({ 下一步安排: value })}
-        />
+        <div className="flex items-center justify-center gap-1">
+          <InlineFieldEditor
+            label="下一步安排"
+            value={fields['下一步安排']}
+            emptyText="暂未安排"
+            disabled={saving}
+            triggerClassName="relative w-full justify-center gap-0 px-5 text-center text-[13px] font-semibold leading-5 text-primary [&>svg]:absolute [&>svg]:right-2"
+            onSave={(value: string) => onUpdate({ 下一步安排: value })}
+          />
+          {fields['下一步安排']?.trim() && (
+            <Tooltip delayDuration={300}>
+              <TooltipTrigger asChild>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  className="size-8 shrink-0 text-primary"
+                  onClick={() => openTodoComposer({ applicationId: item.record_id, applicationLabel: `${fields['公司名称']} · ${fields['岗位名称']}`, title: fields['下一步安排'] })}
+                  aria-label="将下一步安排转为待办"
+                ><ListTodo /></Button>
+              </TooltipTrigger>
+              <TooltipContent>将下一步安排转为待办</TooltipContent>
+            </Tooltip>
+          )}
+        </div>
       </TableCell>
       <TableCell className="py-3 text-center align-middle">
         <StageTimeCell
@@ -1339,6 +1359,12 @@ function ApplicationTableRow({
       </TableCell>
       <TableCell className="py-3 pr-4 text-center align-middle">
         <div className="flex items-center justify-center gap-1.5">
+          <Tooltip delayDuration={300}>
+            <TooltipTrigger asChild>
+              <Button variant="ghost" size="icon" className="size-8 text-primary" onClick={() => openTodoComposer({ applicationId: item.record_id, applicationLabel: `${fields['公司名称']} · ${fields['岗位名称']}` })} aria-label="为该岗位添加待办"><ListTodo /></Button>
+            </TooltipTrigger>
+            <TooltipContent>为该岗位添加待办</TooltipContent>
+          </Tooltip>
           <Button asChild variant="ghost" size="sm" className="px-2">
             <Link to={`/applications/edit/${item.record_id}`}>
               <Edit2 />
@@ -1484,9 +1510,22 @@ function ApplicationMobileCard({
       </div>
       {/* 4. 下一步 */}
       <div className="mt-3 rounded-lg border border-primary/20 bg-primary-soft px-3 py-2.5 text-sm font-semibold text-foreground">
-        <span className="mb-1 block text-[11px] font-bold text-primary">
-          下一步
-        </span>
+        <div className="mb-1 flex items-center justify-between gap-2">
+          <span className="block text-[11px] font-bold text-primary">下一步</span>
+          {fields['下一步安排']?.trim() && (
+            <button
+              type="button"
+              className="text-[11px] font-bold text-primary hover:underline"
+              onClick={() => openTodoComposer({
+                applicationId: item.record_id,
+                applicationLabel: `${fields['公司名称']} · ${fields['岗位名称']}`,
+                title: fields['下一步安排'],
+              })}
+            >
+              转为待办
+            </button>
+          )}
+        </div>
         <InlineFieldEditor
           label="下一步安排"
           value={fields['下一步安排']}
@@ -1498,6 +1537,20 @@ function ApplicationMobileCard({
       </div>
       {/* 5. 资料、复盘、编辑等操作 */}
       <div className="mt-3 flex items-center gap-2">
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          className="h-9 shrink-0 text-primary"
+          onClick={() => openTodoComposer({
+            applicationId: item.record_id,
+            applicationLabel: `${fields['公司名称']} · ${fields['岗位名称']}`,
+          })}
+          aria-label="为这个岗位添加待办"
+        >
+          <ListTodo />
+          待办
+        </Button>
         <button
           type="button"
           onClick={onOpenDetail}
@@ -1742,9 +1795,20 @@ function ApplicationDetailDrawer({
                 ) : null;
               })()}
             <div className="mt-3 rounded-lg bg-surface-muted px-3 py-2.5 ">
-              <p className="text-[11px] font-bold text-foreground-muted">
-                下一步安排
-              </p>
+              <div className="flex items-center justify-between gap-2">
+                <p className="text-[11px] font-bold text-foreground-muted">下一步安排</p>
+                <button
+                  type="button"
+                  className="text-[11px] font-bold text-primary hover:underline"
+                  onClick={() => openTodoComposer({
+                    applicationId: recordId,
+                    applicationLabel: `${fields?.['公司名称'] || ''} · ${fields?.['岗位名称'] || ''}`,
+                    title: fields?.['下一步安排'] || '',
+                  })}
+                >
+                  {fields?.['下一步安排']?.trim() ? '转为待办' : '添加待办'}
+                </button>
+              </div>
               <InlineFieldEditor
                 label="下一步安排"
                 value={fields?.['下一步安排']}

@@ -18,7 +18,7 @@ export interface AccentOption {
 }
 export const ACCENT_OPTIONS: AccentOption[] = [
   // Before theme support: 4670961, tailwind-theme.css --primary: hsl(182 88% 27%).
-  { value: 'original', label: '原版青色', swatch: '#087D81' },
+  { value: 'original', label: '原青', swatch: '#087D81' },
   { value: 'jade', label: '青玉', swatch: '#0F766E' },
   { value: 'ocean', label: '海洋蓝', swatch: '#2563EB' },
   { value: 'indigo', label: '靛蓝', swatch: '#4F46E5' },
@@ -91,5 +91,4 @@ export function useAccent(): AccentContextValue {
   if (!value) throw new Error('useAccent requires ThemeProvider');
   return value;
 }
-
 

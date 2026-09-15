@@ -4,6 +4,10 @@ import type {
   ApplicationRecord,
   ApplicationStats,
   Platform,
+  TodoRecord,
+  TodoSaveInput,
+  TodoScope,
+  TodoSummary,
 } from '@shared/types';
 import type {
   InterviewReview,
@@ -13,6 +17,7 @@ import type {
   DeleteMyDataResponse,
   UserDataExport,
 } from '@shared/api.interface';
+import { notifyTodoDataChanged } from '@/lib/todo-events';
 
 type BackendRequestConfig = Omit<AxiosRequestConfig, 'url'>;
 
@@ -58,7 +63,28 @@ async function request<T>(
   return response.data;
 }
 
+async function notifyTodoAfter<T>(operation: Promise<T>): Promise<T> {
+  const result: T = await operation;
+  notifyTodoDataChanged();
+  return result;
+}
+
 export const api = {
+  listTodos: (scope: TodoScope = 'all', search = '') =>
+    request<TodoRecord[]>('/todos', { params: { scope, search } }),
+  getTodoSummary: () => request<TodoSummary>('/todos/summary'),
+  createTodo: (todo: TodoSaveInput) =>
+    notifyTodoAfter(
+      request<TodoRecord>('/todos', { method: 'POST', data: todo }),
+    ),
+  updateTodo: (id: string, todo: TodoSaveInput) =>
+    notifyTodoAfter(
+      request<TodoRecord>(`/todos/${id}`, { method: 'PUT', data: todo }),
+    ),
+  deleteTodo: (id: string) =>
+    notifyTodoAfter(
+      request<boolean>(`/todos/${id}`, { method: 'DELETE' }),
+    ),
   listApplications: (filters?: Record<string, string>) => {
     return request<ApplicationRecord[]>('/applications', { params: filters });
   },

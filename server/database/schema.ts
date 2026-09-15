@@ -1,7 +1,7 @@
 /* eslint-disable */
 /** auto generated, do not edit */
 import { sql } from 'drizzle-orm';
-import { foreignKey, index, integer, jsonb, pgTable, text, timestamp, uuid, varchar, customType } from "drizzle-orm/pg-core"
+import { boolean, foreignKey, index, integer, jsonb, pgTable, text, timestamp, uuid, varchar, customType } from "drizzle-orm/pg-core"
 
 export const customTimestamptz = customType<{
   data: Date;
@@ -117,6 +117,41 @@ export const fileAttachmentArray = customType<{
   },
 });
 
+export const todos = pgTable("todos", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  userId: varchar("user_id", { length: 64 }).notNull(),
+  applicationId: uuid("application_id"),
+  title: varchar("title", { length: 255 }).notNull(),
+  notes: text("notes"),
+  dueAt: timestamp("due_at", { mode: 'string' }),
+  reminderAt: timestamp("reminder_at", { mode: 'string' }),
+  isImportant: boolean("is_important").notNull().default(false),
+  sortOrder: integer("sort_order").notNull().default(0),
+  completedAt: timestamp("completed_at", { mode: 'string' }),
+  remindedAt: timestamp("reminded_at", { mode: 'string' }),
+  reminderClaimedAt: timestamp("reminder_claimed_at", { mode: 'string' }),
+  reminderAttempts: integer("reminder_attempts").notNull().default(0),
+  lastReminderError: text("last_reminder_error"),
+  createdAt: timestamp("created_at", { mode: 'string' }).notNull().default(sql`CURRENT_TIMESTAMP`),
+  updatedAt: timestamp("updated_at", { mode: 'string' }).notNull().default(sql`CURRENT_TIMESTAMP`),
+  duePrecision: varchar("due_precision", { length: 16 }).default('hour'),
+  // System field: Creator (auto-filled, do not modify)
+  createdBy: userProfile("_created_by").default(sql`CASE
+    WHEN (current_setting('app.user_id'::text, true) = ''::text) THEN NULL`),
+  // System field: Updater (auto-filled, do not modify)
+  updatedBy: userProfile("_updated_by").default(sql`CASE
+    WHEN (current_setting('app.user_id'::text, true) = ''::text) THEN NULL`),
+}, (table) => [
+  index("idx_todos_user_id").on(table.userId),
+  index("idx_todos_user_completed_due").on(table.userId, table.completedAt, table.dueAt),
+  index("idx_todos_pending_reminders").on(table.reminderAt),
+  foreignKey({
+    columns: [table.applicationId],
+    foreignColumns: [applications.id],
+    name: "fk_todos_application",
+  }).onDelete("set null"),
+]);
+
 export const interviewReviews = pgTable("interview_reviews", {
   id: uuid("id").primaryKey().defaultRandom(),
   userId: varchar("user_id", { length: 64 }).notNull(),
@@ -201,3 +236,4 @@ export const applications = pgTable("applications", {
 // table aliases
 export const applicationsTable = applications;
 export const interviewReviewsTable = interviewReviews;
+export const todosTable = todos;
