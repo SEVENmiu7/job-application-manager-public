@@ -28,6 +28,7 @@ describe('个人数据管理', () => {
     expect(
       service.match(/eq\(interviewReviews\.userId, userId\)/g),
     ).toHaveLength(2);
+    expect(service.match(/eq\(todos\.userId, userId\)/g)).toHaveLength(2);
     expect(service).not.toContain('userId: row.userId');
   });
 
@@ -57,6 +58,21 @@ describe('个人数据管理', () => {
     for (const field of ['workMode', 'fitLevel', 'interestLevel']) {
       expect(exportPage).toContain(`application.${field}`);
     }
+  });
+
+  it('个人数据备份和清空操作包含求职待办', () => {
+    const service: string = read(
+      'server/modules/data-privacy/data-privacy.service.ts',
+    );
+    const exportPage: string = read(
+      'client/src/pages/PrivacySettings/PrivacySettings.tsx',
+    );
+
+    expect(service).toContain('todos: todoRows.map');
+    expect(service).toContain('.delete(todos)');
+    expect(service).toContain('deletedTodos: deletedTodos.length');
+    expect(exportPage).toContain("book_append_sheet(workbook, todoSheet, '求职待办')");
+    expect(exportPage).toContain('result.deletedTodos');
   });
 
   it.each(['=SUM(A1:A2)', '+1+1', '-2+3', '@cmd'])(

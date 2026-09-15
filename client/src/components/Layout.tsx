@@ -1,7 +1,8 @@
-import { useEffect, useRef, useState, type MutableRefObject } from 'react';
+import { useEffect, useState } from 'react';
 import { NavLink, Outlet, useLocation } from 'react-router-dom';
 import {
   Download,
+  ListChecks,
   LayoutGrid,
   List,
   Menu,
@@ -17,6 +18,9 @@ import { AppearanceMenu } from './theme/AppearanceMenu';
 import { Tooltip, TooltipContent, TooltipTrigger } from './ui/tooltip';
 import { useMediaQuery, useSidebarCollapsed } from '@/hooks/useMediaQuery';
 import './Layout.css';
+import './todo/todo.css';
+import { TodoBubble } from './todo/TodoBubble';
+import { TodoProvider, useTodoSummary } from './todo/TodoProvider';
 
 interface NavigationItem {
   path: string;
@@ -40,10 +44,20 @@ const NAV_ITEMS: NavigationItem[] = [
     exact: true,
   },
   { path: '/scraping', label: '岗位采集', icon: Download, exact: false },
+  { path: '/todos', label: '求职待办', icon: ListChecks, exact: true },
 ];
 
 export default function Layout() {
+  return (
+    <TodoProvider>
+      <LayoutContent />
+    </TodoProvider>
+  );
+}
+
+function LayoutContent() {
   const location = useLocation();
+  const { summary } = useTodoSummary();
   const automaticSidebarCollapsed: boolean = useSidebarCollapsed();
   const isMobile: boolean = useMediaQuery('(max-width: 767px)');
   const [manualSidebarCollapsed, setManualSidebarCollapsed] = useState<
@@ -59,57 +73,24 @@ export default function Layout() {
     (manualSidebarCollapsed === null
       ? automaticSidebarCollapsed
       : manualSidebarCollapsed);
-  const [sidebarHovered, setSidebarHovered] = useState<boolean>(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState<boolean>(false);
-  const sidebarEnterTimer = useRef<number | null>(null);
-  const sidebarLeaveTimer = useRef<number | null>(null);
-
-  const clearSidebarTimer = (timer: MutableRefObject<number | null>): void => {
-    if (timer.current !== null) window.clearTimeout(timer.current);
-    timer.current = null;
-  };
-
-  const handleSidebarMouseEnter = (): void => {
-    clearSidebarTimer(sidebarLeaveTimer);
-    if (!sidebarCollapsed) return;
-    clearSidebarTimer(sidebarEnterTimer);
-    sidebarEnterTimer.current = window.setTimeout(() => {
-      setSidebarHovered(true);
-      sidebarEnterTimer.current = null;
-    }, 140);
-  };
-
-  const handleSidebarMouseLeave = (): void => {
-    clearSidebarTimer(sidebarEnterTimer);
-    if (!sidebarCollapsed) return;
-    clearSidebarTimer(sidebarLeaveTimer);
-    sidebarLeaveTimer.current = window.setTimeout(() => {
-      setSidebarHovered(false);
-      sidebarLeaveTimer.current = null;
-    }, 180);
-  };
 
   const toggleSidebar = (): void => {
-    const nextCollapsed: boolean = !sidebarCollapsed;
-    setManualSidebarCollapsed(nextCollapsed);
-    window.localStorage.setItem('qz-sidebar-collapsed', String(nextCollapsed));
+    setManualSidebarCollapsed((current: boolean | null) => {
+      const effectiveCollapsed: boolean =
+        current === null ? automaticSidebarCollapsed : current;
+      const nextCollapsed: boolean = !effectiveCollapsed;
+      window.localStorage.setItem(
+        'qz-sidebar-collapsed',
+        String(nextCollapsed),
+      );
+      return nextCollapsed;
+    });
   };
 
   useEffect(() => {
     setMobileMenuOpen(false);
   }, [location.pathname]);
-
-  useEffect(
-    () => () => {
-      if (sidebarEnterTimer.current !== null) {
-        window.clearTimeout(sidebarEnterTimer.current);
-      }
-      if (sidebarLeaveTimer.current !== null) {
-        window.clearTimeout(sidebarLeaveTimer.current);
-      }
-    },
-    [],
-  );
 
   const renderNavItem = (item: NavigationItem) => {
     const Icon = item.icon;
@@ -131,11 +112,20 @@ export default function Layout() {
       >
         <Icon className="nav-icon" />
         <span className="nav-label">{item.label}</span>
+        {item.path === '/todos' &&
+          summary.overdueCount + summary.todayCount > 0 && (
+            <span
+              className="nav-count-badge"
+              aria-label={`${summary.overdueCount} 项逾期，${summary.todayCount} 项今天到期`}
+            >
+              {Math.min(summary.overdueCount + summary.todayCount, 99)}
+            </span>
+          )}
       </NavLink>
     );
-    if (sidebarCollapsed && !sidebarHovered) {
+    if (sidebarCollapsed) {
       return (
-        <Tooltip key={item.path}>
+        <Tooltip key={item.path} delayDuration={300}>
           <TooltipTrigger asChild>{link}</TooltipTrigger>
           <TooltipContent side="right">{item.label}</TooltipContent>
         </Tooltip>
@@ -179,9 +169,7 @@ export default function Layout() {
       <aside
         className={`layout-sidebar ${mobileMenuOpen ? 'layout-sidebar-open' : ''} ${
           sidebarCollapsed ? 'layout-sidebar-collapsed' : ''
-        } ${sidebarCollapsed && sidebarHovered ? 'layout-sidebar-hovered' : ''}`}
-        onMouseEnter={handleSidebarMouseEnter}
-        onMouseLeave={handleSidebarMouseLeave}
+        }`}
       >
         <div className="sidebar-header">
           <div className="sidebar-logo" aria-hidden="true">
@@ -223,6 +211,7 @@ export default function Layout() {
       <main className="layout-main">
         <Outlet />
       </main>
+      <TodoBubble />
     </div>
   );
 }

@@ -3,7 +3,6 @@ import {
   ArrowLeft,
   BriefcaseBusiness,
   CheckCircle2,
-  ChevronsUpDown,
   ChevronDown,
   ChevronUp,
   FileText,
@@ -20,19 +19,7 @@ import { toast } from 'sonner';
 import { api } from '@/api';
 import { PageHeader } from '@/components/page-ui';
 import { Button } from '@/components/ui/button';
-import {
-  Command,
-  CommandEmpty,
-  CommandGroup,
-  CommandInput,
-  CommandItem,
-  CommandList,
-} from '@/components/ui/command';
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from '@/components/ui/popover';
+import { ApplicationSearchPicker as JobSearchPicker } from '@/components/application/ApplicationSearchPicker';
 import {
   Select,
   SelectContent,
@@ -40,10 +27,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import {
-  getApplicationStatusTheme,
-  type ApplicationStatusTheme,
-} from '@/lib/application-theme';
 import { cn } from '@/lib/utils';
 import {
   DECISION_LEVEL_OPTIONS,
@@ -427,6 +410,7 @@ export default function ApplicationCompare() {
             <JobSearchPicker
               records={allRecords}
               excludedIds={ids}
+              contentMode="standard"
               placeholder="添加岗位"
               searchPlaceholder="搜索公司、岗位或地区"
               className="w-44 sm:w-52"
@@ -787,129 +771,6 @@ export default function ApplicationCompare() {
   );
 }
 
-function JobSearchPicker({
-  records,
-  excludedIds,
-  placeholder,
-  searchPlaceholder,
-  className,
-  contentSideOffset = 8,
-  onSelect,
-}: {
-  records: ApplicationRecord[];
-  excludedIds: string[];
-  placeholder: string;
-  searchPlaceholder: string;
-  className?: string;
-  contentSideOffset?: number;
-  onSelect: (id: string) => void;
-}) {
-  const [open, setOpen] = useState(false);
-  const [keyword, setKeyword] = useState('');
-  const availableRecords = useMemo(
-    () =>
-      records.filter(
-        (record) =>
-          Boolean(record.record_id) && !excludedIds.includes(record.record_id!),
-      ),
-    [excludedIds, records],
-  );
-
-  const handleOpenChange = (nextOpen: boolean): void => {
-    setOpen(nextOpen);
-    if (!nextOpen) setKeyword('');
-  };
-
-  const handleSelect = (id: string): void => {
-    onSelect(id);
-    setKeyword('');
-    setOpen(false);
-  };
-
-  return (
-    <Popover open={open} onOpenChange={handleOpenChange}>
-      <PopoverTrigger asChild>
-        <Button
-          type="button"
-          variant="outline"
-          role="combobox"
-          aria-expanded={open}
-          aria-label={`${placeholder}，支持搜索`}
-          disabled={availableRecords.length === 0}
-          className={cn('justify-between font-normal', className)}
-        >
-          <span className="truncate">{placeholder}</span>
-          <ChevronsUpDown className="size-4 shrink-0 text-foreground-muted" />
-        </Button>
-      </PopoverTrigger>
-      <PopoverContent
-        align="end"
-        side="bottom"
-        sideOffset={contentSideOffset}
-        collisionPadding={12}
-        className="w-[min(92vw,420px)] overflow-hidden rounded-xl border-border p-0 shadow-lg"
-      >
-        <Command>
-          <CommandInput
-            value={keyword}
-            onValueChange={setKeyword}
-            placeholder={searchPlaceholder}
-            aria-label={searchPlaceholder}
-          />
-          <CommandList
-            className="p-1.5"
-            style={{
-              maxHeight:
-                'min(320px, var(--radix-popover-content-available-height))',
-            }}
-          >
-            <CommandEmpty className="px-4 py-8 text-center text-sm text-foreground-muted">
-              没有匹配的岗位
-            </CommandEmpty>
-            <CommandGroup>
-              {availableRecords.map((record) => {
-                const id = record.record_id!;
-                const company = record.fields.公司名称 || '未填写公司';
-                const job = record.fields.岗位名称 || '未填写岗位';
-                const location = formatLocations(record.fields.工作地区);
-                const status = record.fields.当前进度 || '收藏';
-                const theme: ApplicationStatusTheme =
-                  getApplicationStatusTheme(status);
-                return (
-                  <CommandItem
-                    key={id}
-                    value={id}
-                    keywords={[company, job, location]}
-                    onSelect={() => handleSelect(id)}
-                    className="items-center gap-3 rounded-lg px-3 py-2.5"
-                  >
-                    <span className="min-w-0 flex-1">
-                      <span className="block truncate text-sm font-semibold text-foreground">
-                        {company} · {job}
-                      </span>
-                      <span className="mt-0.5 block truncate text-xs text-foreground-muted">
-                        {location || '工作地区未填写'}
-                      </span>
-                    </span>
-                    <span
-                      className={cn(
-                        'shrink-0 rounded-full border px-2 py-0.5 text-[11px] font-semibold',
-                        theme.badge,
-                      )}
-                    >
-                      {status}
-                    </span>
-                  </CommandItem>
-                );
-              })}
-            </CommandGroup>
-          </CommandList>
-        </Command>
-      </PopoverContent>
-    </Popover>
-  );
-}
-
 function SectionNavigator({
   layout,
   activeSection,
@@ -1078,6 +939,7 @@ function JobHeader({
       <JobSearchPicker
         records={allRecords}
         excludedIds={ids}
+        contentMode="standard"
         placeholder="替换这个岗位"
         searchPlaceholder="搜索公司、岗位或地区"
         className="mt-4 h-9 w-full text-xs"

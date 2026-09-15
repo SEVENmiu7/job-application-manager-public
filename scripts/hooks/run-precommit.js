@@ -2,7 +2,7 @@
 // FULLSTACK_PRECOMMIT_V1
 'use strict';
 
-const { spawnSync } = require('node:child_process');
+const crossSpawn = require('cross-spawn');
 
 const SEP = '  ' + '─'.repeat(36);
 
@@ -19,7 +19,7 @@ function failAndExit(step, body) {
 
 function runLint() {
   const cwd = process.cwd();
-  const res = spawnSync('npm', ['run', 'lint'], {
+  const res = crossSpawn.sync('npm', ['run', 'lint'], {
     cwd,
     stdio: ['ignore', 'pipe', 'pipe'],
     env: process.env,

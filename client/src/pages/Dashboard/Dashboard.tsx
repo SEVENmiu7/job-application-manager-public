@@ -81,6 +81,7 @@ import {
 } from '@/lib/application-time';
 import { getCurrentStageTime, getLatestInterviewStage } from '@/lib/stage-time';
 import { cn } from '@/lib/utils';
+import { openTodoComposer } from '@/lib/todo-events';
 import type {
   ApplicationProcessStage,
   ApplicationRecord,
@@ -1438,9 +1439,20 @@ function ApplicationCard({
         </span>
       </div>
       <div className="mt-2 min-h-9 rounded-lg bg-surface-muted px-2 py-1.5 text-[11px] leading-[18px] text-foreground-secondary">
-        <span className="block text-[10px] font-bold text-foreground-muted">
-          下一步
-        </span>
+        <div className="flex items-center justify-between gap-2">
+          <span className="block text-[10px] font-bold text-foreground-muted">下一步</span>
+          <button
+            type="button"
+            className="text-[10px] font-bold text-primary hover:underline"
+            onClick={() => openTodoComposer({
+              applicationId: recordId,
+              applicationLabel: `${fields['公司名称']} · ${fields['岗位名称']}`,
+              title: fields['下一步安排'] || '',
+            })}
+          >
+            {fields['下一步安排']?.trim() ? '转为待办' : '添加待办'}
+          </button>
+        </div>
         <InlineFieldEditor
           label="下一步安排"
           value={fields['下一步安排']}
